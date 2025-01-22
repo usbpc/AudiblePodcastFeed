@@ -1,0 +1,72 @@
+import os
+import json
+import re
+from dataclasses import dataclass
+from typing import List, Dict
+
+
+def _get_parsed_metadata(path: str):
+    metadata_files = [x for x in os.listdir(path) if re.fullmatch(r"(?!series)(?!content).*.json", x)]
+
+    series_books = dict()
+    individual_books = list()
+
+    for metadata_filename in metadata_files:
+        with open(f'{path}/{metadata_filename}', "r") as metadata_file:
+            parsed_data = json.load(metadata_file)
+            if 'series' in parsed_data['product']:
+                for series in parsed_data['product']['series']:
+                    if series['asin'] not in series_books:
+                        series_books[series['asin']] = list()
+                    series_books[series['asin']].append(parsed_data['product'])
+            else:
+                individual_books.append(parsed_data['product'])
+
+    for series_asin, book_data in series_books.items():
+        book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == series_asin, x['series']))[0]['sequence'])
+
+    return individual_books, series_books
+
+def _find_m4b_file(book_asin: str, filelist: List):
+    return [x for x in filelist if re.fullmatch(rf".*_{book_asin}_.*\.m4b", x)][0]
+
+@dataclass
+class Book:
+    title: str
+    asin: str
+    audio_file: str
+
+def _book_from_dict(d: Dict, filelist: List) -> Book:
+    return Book(
+        title=d['title'],
+        asin=d['asin'],
+        audio_file=_find_m4b_file(d['asin'], filelist=filelist),
+    )
+
+@dataclass
+class BookSeries:
+    title: str
+    asin: str
+    books: List[Book]
+
+def _make_book_series(asin: str, books: List[Dict], filelist: List) -> BookSeries:
+    title = list(filter(lambda x: x['asin'] == asin, books[0]['series']))[0]['title']
+    return BookSeries(
+        title=title,
+        asin=asin,
+        books= [_book_from_dict(d, filelist) for d in books],
+    )
+
+def get_all_individual_books() -> List[Book]:
+    filelist = os.listdir('audio_files')
+    books, _ = _get_parsed_metadata('metadata_files')
+    return [_book_from_dict(d, filelist) for d in books]
+
+def get_series_by_asin(asin: str) -> BookSeries:
+    filelist = os.listdir('audio_files')
+    _, series = _get_parsed_metadata('metadata_files')
+    return _make_book_series(asin=asin, books=series[asin], filelist=filelist)
+
+def get_audio_file_from_asin(asin: str) -> str:
+    filelist = os.listdir('audio_files')
+    return _find_m4b_file(asin, filelist)
