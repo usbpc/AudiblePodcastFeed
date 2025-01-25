@@ -16,17 +16,28 @@ def add_route(path):
         routes.append(Route(path=path, endpoint=f))
     return decorator
 
+def generate_url_prefix(request: Request):
+    host = request.headers['x-forwarded-host'] if 'x-forwarded-host' in request.headers else request.url.hostname
+    scheme = request.headers['x-forwarded-proto'] if 'x-forwarded-proto' in request.headers else request.url.scheme
+    port = int(request.headers['x-forwarded-port']) if 'x-forwarded-port' in request.headers else request.url.port
+
+    if port == 80 and scheme == 'http' or port == 443 and scheme == 'https':
+        port = None
+
+    url_prefix = f'{scheme}://{host}:{port}' if port else f'{scheme}://{host}'
+    return url_prefix
+
 @add_route(path='/individual_books')
 def individual_books(request: Request):
     books = get_all_individual_books()
 
-    print(request.headers)
+    url_prefix = generate_url_prefix(request)
 
     items = list()
 
     for book in books:
 
-        url = f'{request.url.scheme}://{request.url.hostname}:{request.url.port}/audio_file/{book.audio_file}' if request.url.port else f'{request.url.scheme}://{request.url.hostname}/audio_file/{book.audio_file}'
+        url = f'{url_prefix}/{book.audio_file}'
 
         items.append({
             'title': book.title,
@@ -52,9 +63,12 @@ def book_series(request: Request):
 
     items = list()
 
+    url_prefix = generate_url_prefix(request)
+
+
     for book in series.books:
 
-        url = f'{request.url.scheme}://{request.url.hostname}:{request.url.port}/audio_file/{book.audio_file}' if request.url.port else f'{request.url.scheme}://{request.url.hostname}/audio_file/{book.audio_file}'
+        url = f'{url_prefix}/{book.audio_file}'
 
         items.append({
             'title': book.title,
