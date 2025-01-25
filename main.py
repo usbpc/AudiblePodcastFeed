@@ -20,12 +20,17 @@ def add_route(path):
 def individual_books(request: Request):
     books = get_all_individual_books()
 
+    print(request.headers)
+
     items = list()
 
     for book in books:
+
+        url = f'{request.url.scheme}://{request.url.hostname}:{request.url.port}/audio_file/{book.audio_file}' if request.url.port else f'{request.url.scheme}://{request.url.hostname}/audio_file/{book.audio_file}'
+
         items.append({
             'title': book.title,
-            'audio_url': f'{request.url.scheme}://{request.url.hostname}:{request.url.port}/audio_file/{book.audio_file}',
+            'audio_url': url,
             'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
             'guid': book.asin
@@ -48,9 +53,12 @@ def book_series(request: Request):
     items = list()
 
     for book in series.books:
+
+        url = f'{request.url.scheme}://{request.url.hostname}:{request.url.port}/audio_file/{book.audio_file}' if request.url.port else f'{request.url.scheme}://{request.url.hostname}/audio_file/{book.audio_file}'
+
         items.append({
             'title': book.title,
-            'audio_url': f'{request.url.scheme}://{request.url.hostname}:{request.url.port}/audio_file/{book.audio_file}',
+            'audio_url': url,
             'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
             'guid': book.asin
