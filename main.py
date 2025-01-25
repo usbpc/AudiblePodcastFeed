@@ -21,6 +21,9 @@ def generate_url_prefix(request: Request):
     scheme = request.headers['x-forwarded-proto'] if 'x-forwarded-proto' in request.headers else request.url.scheme
     port = int(request.headers['x-forwarded-port']) if 'x-forwarded-port' in request.headers else request.url.port
 
+    if 'DOWNLOAD_AUTH' in os.environ:
+        host = os.environ['DOWNLOAD_AUTH'] + '@' + host
+
     if port == 80 and scheme == 'http' or port == 443 and scheme == 'https':
         port = None
 
