@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+<channel>
+    <title>{{ title }}</title>
+    <description>
+        <![CDATA[{{ description }}]]>
+    </description>
+    <itunes:image href="{{ image_url }}"/>
+    <itunes:block>Yes</itunes:block>
+    {% for item in items %}
+    <item>
+        <title>{{ item.title }}</title>
+        <enclosure
+            url="{{ item.audio_url }}"
+            length="{{ item.byte_size }}"
+            type="{{ item.type }}"
+        />
+        <guid>{{ item.guid }}</guid>
+    </item>
+    {% endfor %}
+</channel>
+</rss>
