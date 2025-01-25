@@ -37,7 +37,7 @@ def individual_books(request: Request):
 
     for book in books:
 
-        url = f'{url_prefix}/{book.audio_file}'
+        url = f'{url_prefix}/audio_file/{book.audio_file}'
 
         items.append({
             'title': book.title,
@@ -68,7 +68,7 @@ def book_series(request: Request):
 
     for book in series.books:
 
-        url = f'{url_prefix}/{book.audio_file}'
+        url = f'{url_prefix}/audio_file/{book.audio_file}'
 
         items.append({
             'title': book.title,
