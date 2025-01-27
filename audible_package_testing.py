@@ -1,4 +1,6 @@
 import json
+import re
+import urllib.parse
 
 import audible
 from audible.aescipher import decrypt_voucher_from_licenserequest
@@ -134,12 +136,28 @@ def get_book_data(audible_client: audible.Client, asin: str):
         return None
 
 
+def get_download_license(audible_client: audible.Client, asin: str):
+    resp = audible_client.post(f"/1.0/content/{asin}/licenserequest",
+                       body={"quality": "High", "consumption_type": "Download", "drm_type": "Adrm"})
+
+    dlr = decrypt_voucher_from_licenserequest(audible_client.auth, resp)
+    download_link = resp['content_license']['content_metadata']['content_url']['offline_url']
+
+    return download_link, dlr
+
+def generate_download_filename(asin: str, download_link: str):
+    url = urllib.parse.urlparse(download_link)
+    match = re.search(r'[a-zA-Z0-9]+_\d+_\d+_\d', url.path)
+
+    return asin + '_' + match.group(0).upper() + '.aax'
+
 def main():
     auth = audible.Authenticator.from_file("audible_auth")
     client = audible.Client(auth=auth)
 
-    x = json.dumps(get_book_data(client, 'B0D1DY3BCB'))
-    print(x)
+    download_link, dlr = get_download_license(client, 'B0D1DY3BCB')
+
+    print(generate_download_filename('B0D1DY3BCB', download_link))
 
 
 def filter_test():
