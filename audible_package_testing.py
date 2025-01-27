@@ -1,3 +1,5 @@
+import json
+
 import audible
 from audible.aescipher import decrypt_voucher_from_licenserequest
 import asyncio
@@ -102,7 +104,45 @@ def load_library_from_audible(audible_client: audible.Client):
 
     return items
 
+def _make_minimal_series(series: dict):
+    return {
+        'asin': series['asin'],
+        'title': series['title'],
+        'sequence': series['sequence']
+    }
+
+def get_book_data(audible_client: audible.Client, asin: str):
+    try:
+        resp = audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media"})
+        item = resp['item']
+
+        audible_book = {
+            'asin': item['asin'],
+            'title': item['title'],
+            'lang': item['language'],
+        }
+
+        if item['series']:
+            series = list()
+            for s in item['series']:
+                series.append(_make_minimal_series(s))
+            audible_book['series'] = series
+
+        return audible_book
+
+    except Exception as e:
+        return None
+
+
 def main():
+    auth = audible.Authenticator.from_file("audible_auth")
+    client = audible.Client(auth=auth)
+
+    x = json.dumps(get_book_data(client, 'B0D1DY3BCB'))
+    print(x)
+
+
+def filter_test():
     auth = audible.Authenticator.from_file("audible_auth")
     client = audible.Client(auth=auth)
 
