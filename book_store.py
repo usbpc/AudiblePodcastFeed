@@ -5,6 +5,21 @@ from dataclasses import dataclass
 from typing import List, Dict
 
 
+def get_set_of_asins():
+    return _get_set_of_asins('metadata_files')
+
+def _get_set_of_asins(path: str):
+    metadata_files = [x for x in os.listdir(path) if re.fullmatch(r"(?!series)(?!content).*.json", x)]
+
+    asins = set()
+
+    for metadata_filename in metadata_files:
+        with open(os.path.join(path, metadata_filename), "r") as f:
+            parsed_data = json.load(f)
+            asins.add(parsed_data['product']['asin'])
+
+    return asins
+
 def _get_parsed_metadata(path: str):
     metadata_files = [x for x in os.listdir(path) if re.fullmatch(r"(?!series)(?!content).*.json", x)]
 
