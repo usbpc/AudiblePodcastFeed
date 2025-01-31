@@ -1,15 +1,22 @@
 import json
+import os
 import re
 import urllib.parse
+from dataclasses import dataclass
+from typing import List, Any
 
 import audible
 from audible.aescipher import decrypt_voucher_from_licenserequest
 import asyncio
 import httpx
 from pathlib import Path
+import logging
 
-from book_store import get_set_of_asins
+from book_store import get_set_of_asins, AUDIO_FOLDER, METADATA_FOLDER
 
+_logger = logging.getLogger(__name__)
+
+DOWNLOAD_FOLDER = 'downloads'
 
 class Downloader:
     def __init__(self, client: httpx.AsyncClient, url: str, dest_folder: str, file_name: str):
@@ -32,10 +39,10 @@ class Downloader:
 
                 content_length = int(response.headers.get("Content-Length", 0))
                 if dest_path.stat().st_size == content_length:
-                    print(f"File already exists and is complete: {dest_path}")
+                    _logger.info(f"File already exists and is complete: {dest_path}")
                     return True
             except Exception as e:
-                print(f"Failed to validate existing file: {e}")
+                _logger.error(f"Failed to validate existing file: {e}")
         return False
 
     async def download(self):
@@ -66,45 +73,128 @@ class Downloader:
             # Rename temp file to final file name upon completion
             temp_path.rename(dest_path)
 
-            print(f"Downloaded: {self.url} to {dest_path}")
+            _logger.debug(f"Downloaded: {self.url} to {dest_path}")
         except Exception as e:
-            print(f"Failed to download {self.url}: {e}")
+            _logger.error(f"Failed to download {self.url}: {e}")
 
-
-def notes():
-    auth = audible.Authenticator.from_login_external(locale='DE')
-
-    client = audible.Client(auth=auth)
-
-    resp = client.get("library", page=2)
-
-    resp = client.post("/1.0/content/B0D94V646D/licenserequest", body={"quality":"High","consumption_type":"Download","drm_type":"Adrm"})
-
-    """ffmpeg -audible_key 'f670c3ace7f14bc076ad9e8ca8ce7623' -audible_iv '00d332e4c0d505db5f8890ef3516def5' -i bk_acx0_406211de_lc_128_44100_2.aax -c copy output.m4a"""
-
-    resp['content_license']['content_metadata']['content_url']['offline_url']
-
-    dlr = decrypt_voucher_from_licenserequest(auth, resp)
-
-    resp = client.get("/1.0/library/B0D94V646D", params={"response_groups": "series, product_desc, media"})
-    resp["item"]["series"]
-    resp["item"]["title"]
-
-def load_library_from_audible(audible_client: audible.Client):
+async def owned_books_asins(audible_client: audible.AsyncClient):
     page = 1
 
-    items = list()
-
     while True:
-        resp = audible_client.get('1.0/library', params={'num_results': 100, 'sort_by': 'PurchaseDate', 'page': page})
+        resp = await audible_client.get('1.0/library', params={'num_results': 100, 'sort_by': 'PurchaseDate', 'page': page})
         page += 1
 
-        items.extend(resp['items'])
+        for item in resp['items']:
+            yield item['asin']
 
         if len(resp['items']) == 0:
             break
 
-    return items
+
+@dataclass
+class ProcessingBook:
+    asin: str
+    book_data: dict | None = None
+    download_link: str | None = None
+    filename: str | None = None
+    decryption_voucher: dict[str, Any] | None = None
+
+async def book_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue):
+    httpx_client = httpx.AsyncClient(headers= {"User-Agent": "Audible/671 CFNetwork/1240.0.4 Darwin/20.6.0"})
+
+    while True:
+        cur: ProcessingBook = await in_queue.get()
+        if cur is None:
+            await in_queue.put(None)
+            break
+
+        _logger.info(f'Downloading "{cur.book_data["title"]}"')
+        downloader = Downloader(httpx_client, cur.download_link, DOWNLOAD_FOLDER, cur.filename)
+        await downloader.download()
+
+        await out_queue.put(cur)
+
+    await httpx_client.aclose()
+    await out_queue.put(None)
+
+async def book_converter(in_queue: asyncio.Queue):
+    while True:
+        cur: ProcessingBook = await in_queue.get()
+        if cur is None:
+            await in_queue.put(None)
+            break
+
+        tmp_filename = f'{AUDIO_FOLDER}/{cur.filename[:-4]}.m4a'
+        final_filename = f'{AUDIO_FOLDER}/{cur.filename[:-4]}.m4b'
+
+        args = [
+            '-y',
+            '-audible_key', cur.decryption_voucher['key'],
+            '-audible_iv', cur.decryption_voucher['iv'],
+            '-i', f'{DOWNLOAD_FOLDER}/{cur.filename}',
+            '-c', 'copy',
+            tmp_filename
+        ]
+
+        _logger.debug(f'Running ffmpeg with args: {" ".join(args)}')
+        proc = await asyncio.create_subprocess_exec(
+            'ffmpeg', *args,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+
+        await proc.wait()
+
+        if proc.returncode != 0:
+            _logger.error(f"Something went wrong trying to convert {cur.filename}")
+            continue
+
+        os.remove(f'{DOWNLOAD_FOLDER}/{cur.filename}')
+        os.rename(tmp_filename, final_filename)
+
+        with open(f'{METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
+            file.write(json.dumps({'product': cur.book_data}))
+
+async def metadata_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue, audible_client: audible.AsyncClient):
+    while True:
+        cur = await in_queue.get()
+
+        if cur is None:
+            await in_queue.put(None)
+            break
+
+        cur.book_data = await get_book_data(audible_client, cur.asin)
+
+        await out_queue.put(cur)
+
+    await out_queue.put(None)
+
+
+async def process_books(audible_client: audible.AsyncClient):
+    existing_metadata = get_set_of_asins()
+    filelist = os.listdir(AUDIO_FOLDER)
+
+    metadata_input_queue = asyncio.Queue(maxsize=1)
+    downloader_input_queue = asyncio.Queue(maxsize=1)
+    ffmpeg_input_queue = asyncio.Queue(maxsize=1)
+
+    metadata = asyncio.create_task(metadata_downloader(metadata_input_queue, downloader_input_queue, audible_client))
+    downloader = asyncio.create_task(book_downloader(downloader_input_queue, ffmpeg_input_queue))
+    converter = asyncio.create_task(book_converter(ffmpeg_input_queue))
+
+    async for asin in owned_books_asins(audible_client):
+        _logger.debug(f'Checking {asin}')
+        if asin not in existing_metadata or not _find_m4b_file(asin, filelist):
+            url, dlr = await get_download_license(audible_client, asin)
+            filename = generate_download_filename(asin, url)
+            await metadata_input_queue.put(ProcessingBook(asin=asin, download_link=url, decryption_voucher=dlr, filename=filename))
+
+    await metadata_input_queue.put(None)
+    await metadata
+    await downloader
+    await converter
+    _logger.debug("Done Processing Books")
+
 
 def _make_minimal_series(series: dict):
     return {
@@ -113,9 +203,9 @@ def _make_minimal_series(series: dict):
         'sequence': series['sequence']
     }
 
-def get_book_data(audible_client: audible.Client, asin: str):
+async def get_book_data(audible_client: audible.AsyncClient, asin: str):
     try:
-        resp = audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media"})
+        resp = await audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media"})
         item = resp['item']
 
         audible_book = {
@@ -136,14 +226,20 @@ def get_book_data(audible_client: audible.Client, asin: str):
         return None
 
 
-def get_download_license(audible_client: audible.Client, asin: str):
-    resp = audible_client.post(f"/1.0/content/{asin}/licenserequest",
+async def get_download_license(audible_client: audible.AsyncClient, asin: str):
+    resp = await audible_client.post(f"/1.0/content/{asin}/licenserequest",
                        body={"quality": "High", "consumption_type": "Download", "drm_type": "Adrm"})
 
     dlr = decrypt_voucher_from_licenserequest(audible_client.auth, resp)
     download_link = resp['content_license']['content_metadata']['content_url']['offline_url']
 
     return download_link, dlr
+
+def _find_m4b_file(book_asin: str, filelist: List):
+    try:
+        return [x for x in filelist if re.fullmatch(rf".*_?{book_asin}_.*\.m4b", x)][0]
+    except IndexError:
+        return None
 
 def generate_download_filename(asin: str, download_link: str):
     url = urllib.parse.urlparse(download_link)
@@ -153,33 +249,11 @@ def generate_download_filename(asin: str, download_link: str):
 
 def main():
     auth = audible.Authenticator.from_file("audible_auth")
-    client = audible.Client(auth=auth)
+    client = audible.AsyncClient(auth=auth)
 
-    download_link, dlr = get_download_license(client, 'B0D1DY3BCB')
-
-    print(generate_download_filename('B0D1DY3BCB', download_link))
-
-
-def filter_test():
-    auth = audible.Authenticator.from_file("audible_auth")
-    client = audible.Client(auth=auth)
-
-    items = load_library_from_audible(client)
-
-    downloaded_asins = get_set_of_asins()
-
-    for item in items:
-        print(item['title'], end=': ')
-        if item['asin'] in downloaded_asins:
-            print('Already downloaded')
-        else:
-            print('Need to download')
-
-
-
-
-
-
+    asyncio.run(process_books(client))
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    _logger.setLevel(logging.DEBUG)
     main()
