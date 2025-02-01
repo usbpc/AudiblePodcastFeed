@@ -9,7 +9,7 @@
     <itunes:block>Yes</itunes:block>
     {% for item in items %}
     <item>
-        <title>{{ item.title }}</title>
+        <title>{{ item.episode }}. {{ item.title }}</title>
         <enclosure
             url="{{ item.audio_url }}"
             length="{{ item.byte_size }}"
