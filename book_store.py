@@ -39,9 +39,9 @@ def _get_parsed_metadata(path: str):
                     if series['asin'] not in series_books:
                         series_books[series['asin']] = list()
                     series_books[series['asin']].append(parsed_data['product'])
-            if 'podcast' in parsed_data['product']:
+            if 'podcasts' in parsed_data['product']:
                 is_individual = False
-                for podcast in parsed_data['product']['podcast']:
+                for podcast in parsed_data['product']['podcasts']:
                     if podcast['asin'] not in podcast_books:
                         podcast_books[podcast['asin']] = list()
                     podcast_books[podcast['asin']].append(parsed_data['product'])
@@ -52,7 +52,7 @@ def _get_parsed_metadata(path: str):
         book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == series_asin, x['series']))[0]['sequence'])
 
     for podcast_asin, book_data in podcast_books.items():
-        book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == series_asin, x['podcast']))[0]['sort'])
+        book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == podcast_asin, x['podcasts']))[0]['sort'])
 
     return individual_books, series_books, podcast_books
 
@@ -93,7 +93,7 @@ def _make_book_series(asin: str, books: List[Dict], filelist: List) -> BookSerie
     )
 
 def _make_book_podcast(asin: str, books: List[Dict], filelist: List) -> Podcast:
-    title = list(filter(lambda x: x['asin'] == asin, books[0]['podcast']))[0]['title']
+    title = list(filter(lambda x: x['asin'] == asin, books[0]['podcasts']))[0]['title']
     return Podcast(
         title=title,
         asin=asin,
