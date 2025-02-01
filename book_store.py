@@ -26,23 +26,35 @@ def _get_parsed_metadata(path: str):
     metadata_files = [x for x in os.listdir(path) if re.fullmatch(r"(?!series)(?!content).*.json", x)]
 
     series_books = dict()
+    podcast_books = dict()
     individual_books = list()
 
     for metadata_filename in metadata_files:
         with open(f'{path}/{metadata_filename}', "r") as metadata_file:
             parsed_data = json.load(metadata_file)
+            is_individual = True
             if 'series' in parsed_data['product']:
+                is_individual = False
                 for series in parsed_data['product']['series']:
                     if series['asin'] not in series_books:
                         series_books[series['asin']] = list()
                     series_books[series['asin']].append(parsed_data['product'])
-            else:
+            if 'podcast' in parsed_data['product']:
+                is_individual = False
+                for podcast in parsed_data['product']['podcast']:
+                    if podcast['asin'] not in podcast_books:
+                        podcast_books[podcast['asin']] = list()
+                    podcast_books[podcast['asin']].append(parsed_data['product'])
+            if is_individual:
                 individual_books.append(parsed_data['product'])
 
     for series_asin, book_data in series_books.items():
         book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == series_asin, x['series']))[0]['sequence'])
 
-    return individual_books, series_books
+    for podcast_asin, book_data in podcast_books.items():
+        book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == series_asin, x['podcast']))[0]['sort'])
+
+    return individual_books, series_books, podcast_books
 
 def _find_m4b_file(book_asin: str, filelist: List):
     return [x for x in filelist if re.fullmatch(rf".*_?{book_asin}_.*\.m4b", x)][0]
@@ -66,6 +78,12 @@ class BookSeries:
     asin: str
     books: List[Book]
 
+@dataclass
+class Podcast:
+    title: str
+    asin: str
+    books: List[Book]
+
 def _make_book_series(asin: str, books: List[Dict], filelist: List) -> BookSeries:
     title = list(filter(lambda x: x['asin'] == asin, books[0]['series']))[0]['title']
     return BookSeries(
@@ -74,15 +92,28 @@ def _make_book_series(asin: str, books: List[Dict], filelist: List) -> BookSerie
         books= [_book_from_dict(d, filelist) for d in books],
     )
 
+def _make_book_podcast(asin: str, books: List[Dict], filelist: List) -> Podcast:
+    title = list(filter(lambda x: x['asin'] == asin, books[0]['podcast']))[0]['title']
+    return Podcast(
+        title=title,
+        asin=asin,
+        books= [_book_from_dict(d, filelist) for d in books],
+    )
+
 def get_all_individual_books() -> List[Book]:
     filelist = os.listdir(AUDIO_FOLDER)
-    books, _ = _get_parsed_metadata(METADATA_FOLDER)
+    books, _, _ = _get_parsed_metadata(METADATA_FOLDER)
     return [_book_from_dict(d, filelist) for d in books]
 
 def get_series_by_asin(asin: str) -> BookSeries:
     filelist = os.listdir(AUDIO_FOLDER)
-    _, series = _get_parsed_metadata(METADATA_FOLDER)
+    _, series, _ = _get_parsed_metadata(METADATA_FOLDER)
     return _make_book_series(asin=asin, books=series[asin], filelist=filelist)
+
+def get_podcast_by_asin(asin: str) -> Podcast:
+    filelist = os.listdir(AUDIO_FOLDER)
+    _, _, podcasts = _get_parsed_metadata(METADATA_FOLDER)
+    return _make_book_podcast(asin=asin, books=podcasts[asin], filelist=filelist)
 
 def get_audio_file_from_asin(asin: str) -> str:
     filelist = os.listdir(AUDIO_FOLDER)

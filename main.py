@@ -6,7 +6,7 @@ from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
-from book_store import get_all_individual_books, BookSeries, get_series_by_asin
+from book_store import get_all_individual_books, BookSeries, get_series_by_asin, get_podcast_by_asin
 
 templates = Jinja2Templates(directory='templates')
 routes = []
@@ -58,6 +58,36 @@ def individual_books(request: Request):
     }
     return templates.TemplateResponse(request, 'podcast.xml.j2', data, media_type='text/xml')
 
+@add_route(path='/podcast/{asin}')
+def podcast_series(request: Request):
+    asin = request.path_params['asin']
+    podcast = get_podcast_by_asin(asin)
+
+    items = list()
+
+    url_prefix = generate_url_prefix(request)
+
+
+    for book in podcast.books:
+
+        url = f'{url_prefix}/audio_file/{book.audio_file}'
+
+        items.append({
+            'title': book.title,
+            'audio_url': url,
+            'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
+            'type': 'audio/x-m4a',
+            'guid': book.asin
+        })
+
+    data = {
+        'title': podcast.title,
+        'description': 'Audiobooks provided as a Podcast Feed for use in Podcast Apps',
+        'image_url': 'https://dl.holm.dev/usbpc_logo_512x512.png',
+        'items': items
+    }
+
+    return templates.TemplateResponse(request, 'podcast.xml.j2', data, media_type='text/xml')
 
 @add_route(path='/series/{asin}')
 def book_series(request: Request):

@@ -203,9 +203,16 @@ def _make_minimal_series(series: dict):
         'sequence': series['sequence']
     }
 
+def _make_minimal_podcast(podcast: dict):
+    return {
+        'asin': podcast['asin'],
+        'title': podcast['title'],
+        'sort': podcast['sort']
+    }
+
 async def get_book_data(audible_client: audible.AsyncClient, asin: str):
     try:
-        resp = await audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media"})
+        resp = await audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media, relationships"})
         item = resp['item']
 
         audible_book = {
@@ -213,6 +220,14 @@ async def get_book_data(audible_client: audible.AsyncClient, asin: str):
             'title': item['title'],
             'lang': item['language'],
         }
+
+        if item['relationships']:
+            podcasts = list()
+            for r in item['relationships']:
+                if 'content_delivery_type' in r and r['content_delivery_type'] == 'PodcastParent':
+                    podcasts.append(_make_minimal_podcast(r))
+            if len(podcasts) > 0:
+                audible_book['podcasts'] = podcasts
 
         if item['series']:
             series = list()
