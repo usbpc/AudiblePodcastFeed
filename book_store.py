@@ -52,7 +52,7 @@ def _get_parsed_metadata(path: str):
         book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == series_asin, x['series']))[0]['sequence'])
 
     for podcast_asin, book_data in podcast_books.items():
-        book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == podcast_asin, x['podcasts']))[0]['sort'])
+        book_data.sort(key=lambda x: float(list(filter(lambda y: y['asin'] == podcast_asin, x['podcasts']))[0]['sort']))
 
     return individual_books, series_books, podcast_books
 

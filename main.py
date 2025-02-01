@@ -67,7 +67,7 @@ def podcast_series(request: Request):
 
     url_prefix = generate_url_prefix(request)
 
-
+    counter = 0
     for book in podcast.books:
 
         url = f'{url_prefix}/audio_file/{book.audio_file}'
@@ -77,8 +77,10 @@ def podcast_series(request: Request):
             'audio_url': url,
             'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
-            'guid': book.asin
+            'guid': book.asin,
+            'episode': counter
         })
+        counter += 1
 
     data = {
         'title': podcast.title,
@@ -98,7 +100,7 @@ def book_series(request: Request):
 
     url_prefix = generate_url_prefix(request)
 
-
+    counter = 0
     for book in series.books:
 
         url = f'{url_prefix}/audio_file/{book.audio_file}'
@@ -108,8 +110,11 @@ def book_series(request: Request):
             'audio_url': url,
             'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
-            'guid': book.asin
+            'guid': book.asin,
+            'episode': counter
         })
+
+        counter += 1
 
     data = {
         'title': series.title,
