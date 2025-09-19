@@ -16,6 +16,7 @@ from book_store import get_set_of_asins, AUDIO_FOLDER, METADATA_FOLDER
 
 _logger = logging.getLogger(__name__)
 
+# TODO make this a command line argument
 DOWNLOAD_FOLDER = 'downloads'
 
 class Downloader:
@@ -219,6 +220,7 @@ async def get_book_data(audible_client: audible.AsyncClient, asin: str):
             'asin': item['asin'],
             'title': item['title'],
             'lang': item['language'],
+            'release_date': item['release_date']
         }
 
         if item['relationships']:

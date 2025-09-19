@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import List, Dict
 
+# TODO make this a command line argument
 AUDIO_FOLDER = 'audio_files'
 METADATA_FOLDER = 'metadata_files'
 
