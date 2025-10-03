@@ -5,6 +5,11 @@ from starlette.requests import Request
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
+from starlette.config import Config
+
+config = Config(".env")
+
+PODCAST_FEED_IMAGE = config.get("PODCAST_FEED_IMAGE")
 
 from book_store import get_all_individual_books, BookSeries, get_series_by_asin, get_podcast_by_asin
 
@@ -53,7 +58,7 @@ def individual_books(request: Request):
     data = {
         'title': 'Kevin\'s Audiobooks',
         'description': 'Audiobooks provided as a Podcast Feed for use in Podcast Apps',
-        'image_url': 'https://dl.holm.dev/usbpc_logo_512x512.png',
+        'image_url': PODCAST_FEED_IMAGE,
         'items': items
     }
     return templates.TemplateResponse(request, 'podcast.xml.j2', data, media_type='text/xml')
@@ -85,7 +90,7 @@ def podcast_series(request: Request):
     data = {
         'title': podcast.title,
         'description': 'Audiobooks provided as a Podcast Feed for use in Podcast Apps',
-        'image_url': 'https://dl.holm.dev/usbpc_logo_512x512.png',
+        'image_url': PODCAST_FEED_IMAGE,
         'items': items
     }
 
@@ -119,7 +124,7 @@ def book_series(request: Request):
     data = {
         'title': series.title,
         'description': 'Audiobooks provided as a Podcast Feed for use in Podcast Apps',
-        'image_url': 'https://dl.holm.dev/usbpc_logo_512x512.png',
+        'image_url': PODCAST_FEED_IMAGE,
         'items': items
     }
 
