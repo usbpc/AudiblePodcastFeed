@@ -8,10 +8,7 @@ from typing import List, Dict
 AUDIO_FOLDER = 'audio_files'
 METADATA_FOLDER = 'metadata_files'
 
-def get_set_of_asins():
-    return _get_set_of_asins(METADATA_FOLDER)
-
-def _get_set_of_asins(path: str):
+def get_set_of_asins(path: str = METADATA_FOLDER):
     metadata_files = [x for x in os.listdir(path) if re.fullmatch(r"(?!series)(?!content).*.json", x)]
 
     asins = set()
