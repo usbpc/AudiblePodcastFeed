@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import re
@@ -11,6 +12,8 @@ import asyncio
 import httpx
 from pathlib import Path
 import logging
+
+from audible.exceptions import NotFoundError
 
 from book_store import get_set_of_asins, AUDIO_FOLDER, METADATA_FOLDER
 
@@ -38,8 +41,40 @@ def _make_minimal_podcast(podcast: dict):
         'sort': podcast['sort']
     }
 
+async def get_non_owned_book_data(audible_client: audible.AsyncClient, asin: str) -> dict:
+    try:
+        resp = await audible_client.get(f"/1.0/catalog/products/{asin}", params={"response_groups": "contributors, media, price, product_attrs, product_desc, product_details, product_extended_attrs, product_plan_details, product_plans, rating, sample, sku, series, reviews, relationships, review_attrs, category_ladders, claim_code_url, provided_review, rights, customer_rights, goodreads_ratings"})
+
+        item = resp['product']
+
+        audible_book = {
+            'asin': item['asin'],
+            'title': item['title'],
+            'lang': item['language'],
+            'release_date': item['release_date']
+        }
+
+        if "relationships" in item and item['relationships'] is not None:
+            podcasts = list()
+            for r in item['relationships']:
+                if 'content_delivery_type' in r and r['content_delivery_type'] == 'PodcastParent':
+                    podcasts.append(_make_minimal_podcast(r))
+            if len(podcasts) > 0:
+                audible_book['podcasts'] = podcasts
+
+        if "series" in item and item['series'] is not None:
+            series = list()
+            for s in item['series']:
+                series.append(_make_minimal_series(s))
+            audible_book['series'] = series
+
+        return audible_book
+    except Exception as e:
+        _logger.error(f'Failed to get non-owned book data: {e}')
+
 async def get_book_data(audible_client: audible.AsyncClient, asin: str):
     try:
+
         resp = await audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media, relationships"})
         item = resp['item']
 
@@ -66,8 +101,10 @@ async def get_book_data(audible_client: audible.AsyncClient, asin: str):
 
         return audible_book
 
+    except NotFoundError:
+        return await get_non_owned_book_data(audible_client, asin)
     except Exception as e:
-        return None
+        _logger.error(f'Failed to get owned book data: {e}')
 
 async def metadata_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue, audible_client: audible.AsyncClient):
     while True:
@@ -145,19 +182,6 @@ class Downloader:
         except Exception as e:
             _logger.error(f"Failed to download {self.url}: {e}")
 
-async def owned_books_asins(audible_client: audible.AsyncClient):
-    page = 1
-
-    while True:
-        resp = await audible_client.get('1.0/library', params={'num_results': 100, 'sort_by': 'PurchaseDate', 'page': page})
-        page += 1
-
-        for item in resp['items']:
-            yield item['asin']
-
-        if len(resp['items']) == 0:
-            break
-
 async def book_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue):
     httpx_client = httpx.AsyncClient(headers= {"User-Agent": "Audible/671 CFNetwork/1240.0.4 Darwin/20.6.0"})
 
@@ -214,6 +238,29 @@ async def book_converter(in_queue: asyncio.Queue):
         with open(f'{METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
             file.write(json.dumps({'product': cur.book_data}))
 
+async def metadata_writer(in_queue: asyncio.Queue):
+    while True:
+        cur: ProcessingBook = await in_queue.get()
+        if cur is None:
+            await in_queue.put(None)
+            break
+
+        with open(f'{METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
+            file.write(json.dumps({'product': cur.book_data}))
+
+async def owned_books_asins(audible_client: audible.AsyncClient):
+    page = 1
+
+    while True:
+        resp = await audible_client.get('1.0/library', params={'num_results': 100, 'sort_by': 'PurchaseDate', 'page': page})
+        page += 1
+
+        for item in resp['items']:
+            yield item['asin']
+
+        if len(resp['items']) == 0:
+            break
+
 async def get_download_license(audible_client: audible.AsyncClient, asin: str):
     resp = await audible_client.post(f"/1.0/content/{asin}/licenserequest",
                        body={"quality": "High", "consumption_type": "Download", "drm_type": "Adrm"})
@@ -260,11 +307,50 @@ async def download_books_and_metadata(audible_client: audible.AsyncClient):
     await converter
     _logger.debug("Done Processing Books")
 
+async def update_metadata(audible_client: audible.AsyncClient):
+    existing_metadata = get_set_of_asins()
+
+    metadata_input_queue = asyncio.Queue(maxsize=1)
+    metadata_output_queue = asyncio.Queue(maxsize=1)
+
+    metadata_in = asyncio.create_task(metadata_downloader(metadata_input_queue, metadata_output_queue, audible_client))
+    metadata_out = asyncio.create_task(metadata_writer(metadata_output_queue))
+
+    for asin in existing_metadata:
+        _logger.debug(f'Checking {asin}')
+        await metadata_input_queue.put(
+            ProcessingBook(asin=asin, download_link=None, decryption_voucher=None, filename=None))
+
+    await metadata_input_queue.put(None)
+    await metadata_in
+    await metadata_out
+
+    _logger.debug("Done Processing Books")
+
 def main():
+    parser = argparse.ArgumentParser(description='Audible cli download tool')
+    subparsers = parser.add_subparsers(dest='command', required=True)
+
+    parser_download = subparsers.add_parser('download', help='Download books and metadata')
+    parser_metadata = subparsers.add_parser('metadata', help='Update metadata of downloaded books')
+
+    args = parser.parse_args()
+
+    to_run = None
+
+    match args.command:
+        case 'download':
+            to_run = download_books_and_metadata
+        case 'metadata':
+            to_run = update_metadata
+
     auth = audible.Authenticator.from_file("audible_auth")
     client = audible.AsyncClient(auth=auth)
 
-    asyncio.run(download_books_and_metadata(client))
+    if to_run is None:
+        return
+
+    asyncio.run(to_run(client))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(message)s')
