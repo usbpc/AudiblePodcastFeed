@@ -12,6 +12,13 @@ RUN set -eux; \
 
 RUN pip install -r requirements.txt
 
-EXPOSE 80/tcp
+RUN set -eux; \
+    groupadd -g 1000 audible; \
+    useradd -m -u 1000 -g 1000 -s /bin/bash audible; \
+    chown -R audible:audible /app
 
-CMD ["python", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "80", "--proxy-headers", "main:app"]
+USER 1000:1000
+
+EXPOSE 8080/tcp
+
+CMD ["python", "-m", "uvicorn", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers", "main:app"]
