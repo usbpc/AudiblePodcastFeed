@@ -16,6 +16,73 @@ from book_store import get_set_of_asins, AUDIO_FOLDER, METADATA_FOLDER
 
 _logger = logging.getLogger(__name__)
 
+@dataclass
+class ProcessingBook:
+    asin: str
+    book_data: dict | None = None
+    download_link: str | None = None
+    filename: str | None = None
+    decryption_voucher: dict[str, Any] | None = None
+
+def _make_minimal_series(series: dict):
+    return {
+        'asin': series['asin'],
+        'title': series['title'],
+        'sequence': series['sequence']
+    }
+
+def _make_minimal_podcast(podcast: dict):
+    return {
+        'asin': podcast['asin'],
+        'title': podcast['title'],
+        'sort': podcast['sort']
+    }
+
+async def get_book_data(audible_client: audible.AsyncClient, asin: str):
+    try:
+        resp = await audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media, relationships"})
+        item = resp['item']
+
+        audible_book = {
+            'asin': item['asin'],
+            'title': item['title'],
+            'lang': item['language'],
+            'release_date': item['release_date']
+        }
+
+        if item['relationships']:
+            podcasts = list()
+            for r in item['relationships']:
+                if 'content_delivery_type' in r and r['content_delivery_type'] == 'PodcastParent':
+                    podcasts.append(_make_minimal_podcast(r))
+            if len(podcasts) > 0:
+                audible_book['podcasts'] = podcasts
+
+        if item['series']:
+            series = list()
+            for s in item['series']:
+                series.append(_make_minimal_series(s))
+            audible_book['series'] = series
+
+        return audible_book
+
+    except Exception as e:
+        return None
+
+async def metadata_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue, audible_client: audible.AsyncClient):
+    while True:
+        cur = await in_queue.get()
+
+        if cur is None:
+            await in_queue.put(None)
+            break
+
+        cur.book_data = await get_book_data(audible_client, cur.asin)
+
+        await out_queue.put(cur)
+
+    await out_queue.put(None)
+
 # TODO make this a command line argument
 DOWNLOAD_FOLDER = 'downloads'
 
@@ -91,15 +158,6 @@ async def owned_books_asins(audible_client: audible.AsyncClient):
         if len(resp['items']) == 0:
             break
 
-
-@dataclass
-class ProcessingBook:
-    asin: str
-    book_data: dict | None = None
-    download_link: str | None = None
-    filename: str | None = None
-    decryption_voucher: dict[str, Any] | None = None
-
 async def book_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue):
     httpx_client = httpx.AsyncClient(headers= {"User-Agent": "Audible/671 CFNetwork/1240.0.4 Darwin/20.6.0"})
 
@@ -156,22 +214,28 @@ async def book_converter(in_queue: asyncio.Queue):
         with open(f'{METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
             file.write(json.dumps({'product': cur.book_data}))
 
-async def metadata_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue, audible_client: audible.AsyncClient):
-    while True:
-        cur = await in_queue.get()
+async def get_download_license(audible_client: audible.AsyncClient, asin: str):
+    resp = await audible_client.post(f"/1.0/content/{asin}/licenserequest",
+                       body={"quality": "High", "consumption_type": "Download", "drm_type": "Adrm"})
 
-        if cur is None:
-            await in_queue.put(None)
-            break
+    dlr = decrypt_voucher_from_licenserequest(audible_client.auth, resp)
+    download_link = resp['content_license']['content_metadata']['content_url']['offline_url']
 
-        cur.book_data = await get_book_data(audible_client, cur.asin)
+    return download_link, dlr
 
-        await out_queue.put(cur)
+def _find_m4b_file(book_asin: str, filelist: List):
+    try:
+        return [x for x in filelist if re.fullmatch(rf".*_?{book_asin}_.*\.m4b", x)][0]
+    except IndexError:
+        return None
 
-    await out_queue.put(None)
+def generate_download_filename(asin: str, download_link: str):
+    url = urllib.parse.urlparse(download_link)
+    match = re.search(r'[a-zA-Z0-9]+_\d+_\d+_\d', url.path)
 
+    return asin + '_' + match.group(0).upper() + '.aax'
 
-async def process_books(audible_client: audible.AsyncClient):
+async def download_books_and_metadata(audible_client: audible.AsyncClient):
     existing_metadata = get_set_of_asins()
     filelist = os.listdir(AUDIO_FOLDER)
 
@@ -196,79 +260,11 @@ async def process_books(audible_client: audible.AsyncClient):
     await converter
     _logger.debug("Done Processing Books")
 
-
-def _make_minimal_series(series: dict):
-    return {
-        'asin': series['asin'],
-        'title': series['title'],
-        'sequence': series['sequence']
-    }
-
-def _make_minimal_podcast(podcast: dict):
-    return {
-        'asin': podcast['asin'],
-        'title': podcast['title'],
-        'sort': podcast['sort']
-    }
-
-async def get_book_data(audible_client: audible.AsyncClient, asin: str):
-    try:
-        resp = await audible_client.get(f"/1.0/library/{asin}", params={"response_groups": "series, product_desc, media, relationships"})
-        item = resp['item']
-
-        audible_book = {
-            'asin': item['asin'],
-            'title': item['title'],
-            'lang': item['language'],
-            'release_date': item['release_date']
-        }
-
-        if item['relationships']:
-            podcasts = list()
-            for r in item['relationships']:
-                if 'content_delivery_type' in r and r['content_delivery_type'] == 'PodcastParent':
-                    podcasts.append(_make_minimal_podcast(r))
-            if len(podcasts) > 0:
-                audible_book['podcasts'] = podcasts
-
-        if item['series']:
-            series = list()
-            for s in item['series']:
-                series.append(_make_minimal_series(s))
-            audible_book['series'] = series
-
-        return audible_book
-
-    except Exception as e:
-        return None
-
-
-async def get_download_license(audible_client: audible.AsyncClient, asin: str):
-    resp = await audible_client.post(f"/1.0/content/{asin}/licenserequest",
-                       body={"quality": "High", "consumption_type": "Download", "drm_type": "Adrm"})
-
-    dlr = decrypt_voucher_from_licenserequest(audible_client.auth, resp)
-    download_link = resp['content_license']['content_metadata']['content_url']['offline_url']
-
-    return download_link, dlr
-
-def _find_m4b_file(book_asin: str, filelist: List):
-    try:
-        return [x for x in filelist if re.fullmatch(rf".*_?{book_asin}_.*\.m4b", x)][0]
-    except IndexError:
-        return None
-
-def generate_download_filename(asin: str, download_link: str):
-    url = urllib.parse.urlparse(download_link)
-    match = re.search(r'[a-zA-Z0-9]+_\d+_\d+_\d', url.path)
-
-    return asin + '_' + match.group(0).upper() + '.aax'
-
 def main():
     auth = audible.Authenticator.from_file("audible_auth")
     client = audible.AsyncClient(auth=auth)
 
-    asyncio.run(process_books(client))
+    asyncio.run(download_books_and_metadata(client))
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(message)s')
