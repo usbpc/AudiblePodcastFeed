@@ -62,12 +62,14 @@ class Book:
     title: str
     asin: str
     audio_file: str
+    pub_date: str
 
 def _book_from_dict(d: Dict, filelist: List) -> Book:
     return Book(
         title=d['title'],
         asin=d['asin'],
         audio_file=_find_m4b_file(d['asin'], filelist=filelist),
+        pub_date=d['release_date'],
     )
 
 @dataclass

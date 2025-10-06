@@ -4,6 +4,8 @@ import random
 import string
 
 from typing import Any
+from datetime import datetime, timedelta
+from email.utils import format_datetime
 
 from starlette.exceptions import HTTPException
 from starlette.applications import Starlette
@@ -73,9 +75,6 @@ def generate_url_prefix(request: Request):
     scheme = request.headers['x-forwarded-proto'] if 'x-forwarded-proto' in request.headers else request.url.scheme
     port = int(request.headers['x-forwarded-port']) if 'x-forwarded-port' in request.headers else request.url.port
 
-    if 'DOWNLOAD_AUTH' in os.environ:
-        host = os.environ['DOWNLOAD_AUTH'] + '@' + host
-
     if port == 80 and scheme == 'http' or port == 443 and scheme == 'https':
         port = None
 
@@ -99,7 +98,8 @@ def individual_books(request: Request):
             'audio_url': url,
             'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
-            'guid': book.asin
+            'guid': book.asin,
+            'pub_date': format_datetime(datetime.strptime(book.pub_date, "%Y-%m-%d")),
         })
 
     data = {
@@ -130,7 +130,8 @@ def podcast_series(request: Request):
             'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
             'guid': book.asin,
-            'episode': counter
+            'episode': counter,
+            'pub_date': format_datetime(datetime.strptime(book.pub_date, "%Y-%m-%d") + timedelta(minutes=counter)),
         })
         counter += 1
 
@@ -163,7 +164,8 @@ def book_series(request: Request):
             'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
             'guid': book.asin,
-            'episode': counter
+            'episode': counter,
+            'pub_date': format_datetime(datetime.strptime(book.pub_date, "%Y-%m-%d") + timedelta(minutes=counter)),
         })
 
         counter += 1
