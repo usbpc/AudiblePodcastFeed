@@ -4,7 +4,7 @@ import os
 import re
 import urllib.parse
 from dataclasses import dataclass
-from typing import List, Any
+from typing import List, Any, Callable
 
 import audible
 from audible.aescipher import decrypt_voucher_from_licenserequest
@@ -16,7 +16,7 @@ import logging
 from audible.exceptions import NotFoundError
 
 import folder_settings
-from book_store import get_set_of_asins
+get_set_of_asins = Callable[[str], set]
 
 _logger = logging.getLogger(__name__)
 
@@ -339,6 +339,10 @@ def main():
 
     folder_settings.AUDIO_FOLDER = args.audio_folder
     folder_settings.METADATA_FOLDER = args.metadata_folder
+
+    import book_store
+    global get_set_of_asins
+    get_set_of_asins = book_store.get_set_of_asins
 
     to_run = None
 
