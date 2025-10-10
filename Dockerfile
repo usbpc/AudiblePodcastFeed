@@ -2,7 +2,7 @@ FROM python:3.12
 
 WORKDIR /app
 
-COPY book_store.py main.py audible_package_testing.py requirements.txt /app/
+COPY book_store.py main.py generate_audible_auth.py library_downloader.py requirements.txt /app/
 COPY templates /app/templates/
 
 RUN set -eux; \
