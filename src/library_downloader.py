@@ -330,6 +330,7 @@ def main():
     parser.add_argument("--audio-folder", default="audio_files", type=str, help="Path to the audio folder")
     parser.add_argument("--metadata-folder", default="metadata_files", type=str, help="Path to the metadata folder")
     parser.add_argument("--download-folder", default="downloads", type=str, help="Path to the temp download folder")
+    parser.add_argument("--auth-file", default="audible_auth", type=str, help="Path to the auth file")
     subparsers = parser.add_subparsers(dest='command', required=True)
 
     parser_download = subparsers.add_parser('download', help='Download books and metadata')
@@ -352,7 +353,7 @@ def main():
         case 'metadata':
             to_run = update_metadata
 
-    auth = audible.Authenticator.from_file("../audible_auth")
+    auth = audible.Authenticator.from_file(args.auth_file)
     client = audible.AsyncClient(auth=auth)
 
     if to_run is None:
