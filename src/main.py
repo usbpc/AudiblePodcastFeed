@@ -15,12 +15,18 @@ from starlette.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 from starlette.config import Config
 
+import folder_settings
+
 config = Config(".env")
 
 PODCAST_FEED_IMAGE = config.get("PODCAST_FEED_IMAGE")
 HASH_SALT = bytes(config.get("PODCAST_HASH_SALT", default=''.join(random.choices(string.ascii_letters + string.digits, k=16))), 'utf-8')
 
-from book_store import get_all_individual_books, BookSeries, get_series_by_asin, get_podcast_by_asin
+folder_settings.AUDIO_FOLDER = config.get("AUDIO_FOLDER", default="audio_files")
+folder_settings.METADATA_FOLDER = config.get("METADATA_FOLDER", default="metadata_files")
+
+from folder_settings import AUDIO_FOLDER
+from book_store import get_all_individual_books, get_series_by_asin, get_podcast_by_asin
 
 templates = Jinja2Templates(directory='templates')
 routes = []
@@ -96,7 +102,7 @@ def individual_books(request: Request):
         items.append({
             'title': book.title,
             'audio_url': url,
-            'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
+            'byte_size':  os.stat(f'{AUDIO_FOLDER}/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
             'guid': book.asin,
             'pub_date': format_datetime(datetime.strptime(book.pub_date, "%Y-%m-%d")),
@@ -127,7 +133,7 @@ def podcast_series(request: Request):
         items.append({
             'title': book.title,
             'audio_url': url,
-            'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
+            'byte_size':  os.stat(f'{AUDIO_FOLDER}/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
             'guid': book.asin,
             'episode': counter,
@@ -161,7 +167,7 @@ def book_series(request: Request):
         items.append({
             'title': book.title,
             'audio_url': url,
-            'byte_size':  os.stat(f'audio_files/{book.audio_file}').st_size,
+            'byte_size':  os.stat(f'{AUDIO_FOLDER}/{book.audio_file}').st_size,
             'type': 'audio/x-m4a',
             'guid': book.asin,
             'episode': counter,
@@ -179,5 +185,5 @@ def book_series(request: Request):
 
     return templates.TemplateResponse(request, 'podcast.xml.j2', data, media_type='text/xml')
 
-routes.append(Mount('/audio_file', app=SaltHashStaticfiles(directory='audio_files'), name='audio_files'))
+routes.append(Mount('/audio_file', app=SaltHashStaticfiles(directory=AUDIO_FOLDER), name='audio_files'))
 app = Starlette(debug=True, routes=routes)

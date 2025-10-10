@@ -3,12 +3,9 @@ import json
 import re
 from dataclasses import dataclass
 from typing import List, Dict
+import folder_settings
 
-# TODO make this a command line argument
-AUDIO_FOLDER = 'audio_files'
-METADATA_FOLDER = 'metadata_files'
-
-def get_set_of_asins(path: str = METADATA_FOLDER):
+def get_set_of_asins(path: str = folder_settings.METADATA_FOLDER):
     metadata_files = [x for x in os.listdir(path) if re.fullmatch(r"(?!series)(?!content).*.json", x)]
 
     asins = set()
@@ -101,20 +98,20 @@ def _make_book_podcast(asin: str, books: List[Dict], filelist: List) -> Podcast:
     )
 
 def get_all_individual_books() -> List[Book]:
-    filelist = os.listdir(AUDIO_FOLDER)
-    books, _, _ = _get_parsed_metadata(METADATA_FOLDER)
+    filelist = os.listdir(folder_settings.AUDIO_FOLDER)
+    books, _, _ = _get_parsed_metadata(folder_settings.METADATA_FOLDER)
     return [_book_from_dict(d, filelist) for d in books]
 
 def get_series_by_asin(asin: str) -> BookSeries:
-    filelist = os.listdir(AUDIO_FOLDER)
-    _, series, _ = _get_parsed_metadata(METADATA_FOLDER)
+    filelist = os.listdir(folder_settings.AUDIO_FOLDER)
+    _, series, _ = _get_parsed_metadata(folder_settings.METADATA_FOLDER)
     return _make_book_series(asin=asin, books=series[asin], filelist=filelist)
 
 def get_podcast_by_asin(asin: str) -> Podcast:
-    filelist = os.listdir(AUDIO_FOLDER)
-    _, _, podcasts = _get_parsed_metadata(METADATA_FOLDER)
+    filelist = os.listdir(folder_settings.AUDIO_FOLDER)
+    _, _, podcasts = _get_parsed_metadata(folder_settings.METADATA_FOLDER)
     return _make_book_podcast(asin=asin, books=podcasts[asin], filelist=filelist)
 
 def get_audio_file_from_asin(asin: str) -> str:
-    filelist = os.listdir(AUDIO_FOLDER)
+    filelist = os.listdir(folder_settings.AUDIO_FOLDER)
     return _find_m4b_file(asin, filelist)

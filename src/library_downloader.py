@@ -15,7 +15,8 @@ import logging
 
 from audible.exceptions import NotFoundError
 
-from book_store import get_set_of_asins, AUDIO_FOLDER, METADATA_FOLDER
+import folder_settings
+from book_store import get_set_of_asins
 
 _logger = logging.getLogger(__name__)
 
@@ -120,9 +121,6 @@ async def metadata_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue,
 
     await out_queue.put(None)
 
-# TODO make this a command line argument
-DOWNLOAD_FOLDER = 'downloads'
-
 class Downloader:
     def __init__(self, client: httpx.AsyncClient, url: str, dest_folder: str, file_name: str):
         self.client = client
@@ -192,7 +190,7 @@ async def book_downloader(in_queue: asyncio.Queue, out_queue: asyncio.Queue):
             break
 
         _logger.info(f'Downloading "{cur.book_data["title"]}"')
-        downloader = Downloader(httpx_client, cur.download_link, DOWNLOAD_FOLDER, cur.filename)
+        downloader = Downloader(httpx_client, cur.download_link, folder_settings.DOWNLOAD_FOLDER, cur.filename)
         await downloader.download()
 
         await out_queue.put(cur)
@@ -207,14 +205,14 @@ async def book_converter(in_queue: asyncio.Queue):
             await in_queue.put(None)
             break
 
-        tmp_filename = f'{AUDIO_FOLDER}/{cur.filename[:-4]}.m4a'
-        final_filename = f'{AUDIO_FOLDER}/{cur.filename[:-4]}.m4b'
+        tmp_filename = f'{folder_settings.AUDIO_FOLDER}/{cur.filename[:-4]}.m4a'
+        final_filename = f'{folder_settings.AUDIO_FOLDER}/{cur.filename[:-4]}.m4b'
 
         args = [
             '-y',
             '-audible_key', cur.decryption_voucher['key'],
             '-audible_iv', cur.decryption_voucher['iv'],
-            '-i', f'{DOWNLOAD_FOLDER}/{cur.filename}',
+            '-i', f'{folder_settings.DOWNLOAD_FOLDER}/{cur.filename}',
             '-c', 'copy',
             tmp_filename
         ]
@@ -232,10 +230,10 @@ async def book_converter(in_queue: asyncio.Queue):
             _logger.error(f"Something went wrong trying to convert {cur.filename}")
             continue
 
-        os.remove(f'{DOWNLOAD_FOLDER}/{cur.filename}')
+        os.remove(f'{folder_settings.DOWNLOAD_FOLDER}/{cur.filename}')
         os.rename(tmp_filename, final_filename)
 
-        with open(f'{METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
+        with open(f'{folder_settings.METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
             file.write(json.dumps({'product': cur.book_data}))
 
 async def metadata_writer(in_queue: asyncio.Queue):
@@ -245,7 +243,7 @@ async def metadata_writer(in_queue: asyncio.Queue):
             await in_queue.put(None)
             break
 
-        with open(f'{METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
+        with open(f'{folder_settings.METADATA_FOLDER}/{cur.asin}.json', 'w') as file:
             file.write(json.dumps({'product': cur.book_data}))
 
 async def owned_books_asins(audible_client: audible.AsyncClient):
@@ -284,7 +282,7 @@ def generate_download_filename(asin: str, download_link: str):
 
 async def download_books_and_metadata(audible_client: audible.AsyncClient):
     existing_metadata = get_set_of_asins()
-    filelist = os.listdir(AUDIO_FOLDER)
+    filelist = os.listdir(folder_settings.AUDIO_FOLDER)
 
     metadata_input_queue = asyncio.Queue(maxsize=1)
     downloader_input_queue = asyncio.Queue(maxsize=1)
@@ -329,12 +327,18 @@ async def update_metadata(audible_client: audible.AsyncClient):
 
 def main():
     parser = argparse.ArgumentParser(description='Audible cli download tool')
+    parser.add_argument("--audio-folder", default="audio_files", type=str, help="Path to the audio folder")
+    parser.add_argument("--metadata-folder", default="metadata_files", type=str, help="Path to the metadata folder")
+    parser.add_argument("--download-folder", default="downloads", type=str, help="Path to the temp download folder")
     subparsers = parser.add_subparsers(dest='command', required=True)
 
     parser_download = subparsers.add_parser('download', help='Download books and metadata')
     parser_metadata = subparsers.add_parser('metadata', help='Update metadata of downloaded books')
 
     args = parser.parse_args()
+
+    folder_settings.AUDIO_FOLDER = args.audio_folder
+    folder_settings.METADATA_FOLDER = args.metadata_folder
 
     to_run = None
 
@@ -344,7 +348,7 @@ def main():
         case 'metadata':
             to_run = update_metadata
 
-    auth = audible.Authenticator.from_file("audible_auth")
+    auth = audible.Authenticator.from_file("../audible_auth")
     client = audible.AsyncClient(auth=auth)
 
     if to_run is None:
