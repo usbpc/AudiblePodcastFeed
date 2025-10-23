@@ -340,6 +340,7 @@ def main():
 
     folder_settings.AUDIO_FOLDER = args.audio_folder
     folder_settings.METADATA_FOLDER = args.metadata_folder
+    folder_settings.DOWNLOAD_FOLDER = args.download_folder
 
     import book_store
     global get_set_of_asins
