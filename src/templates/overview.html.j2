@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Better Motherfucking Website</title>
+    <style type="text/css">
+        body {
+            margin:40px auto;
+            max-width:650px;
+            line-height:1.6;
+            font-size:18px;
+            color:#444;
+            padding:0 10px;
+        }
+        h1,h2,h3 {
+            line-height:1.2;
+        }
+    </style>
+</head>
+<body>
+<h1>Overview</h1>
+<h2><a href="{{ url_prefix }}/individual_books">Audiobooks not in any series</a></h2>
+<ul>
+    {% for book in individual_books %}
+    <li>{{ book.title }}</li>
+    {% endfor %}
+</ul>
+<h2>Series</h2>
+<ul>
+    {% for series in series_books %}
+    <li><a href="{{ url_prefix }}/series/{{ series.asin }}">{{ series.title }}</a></li>
+    {% endfor %}
+</ul>
+</body>
+</html>

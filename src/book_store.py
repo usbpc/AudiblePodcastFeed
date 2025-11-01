@@ -100,7 +100,7 @@ def _make_book_podcast(asin: str, books: List[Dict], filelist: List) -> Podcast:
 def get_all_individual_books() -> List[Book]:
     filelist = os.listdir(folder_settings.AUDIO_FOLDER)
     books, _, _ = _get_parsed_metadata(folder_settings.METADATA_FOLDER)
-    return [_book_from_dict(d, filelist) for d in books]
+    return sorted([_book_from_dict(d, filelist) for d in books], key=lambda s: s.title)
 
 def get_series_by_asin(asin: str) -> BookSeries:
     filelist = os.listdir(folder_settings.AUDIO_FOLDER)
@@ -115,3 +115,12 @@ def get_podcast_by_asin(asin: str) -> Podcast:
 def get_audio_file_from_asin(asin: str) -> str:
     filelist = os.listdir(folder_settings.AUDIO_FOLDER)
     return _find_m4b_file(asin, filelist)
+
+def get_series() -> List[BookSeries]:
+    filelist = os.listdir(folder_settings.AUDIO_FOLDER)
+    book_series = list()
+    _, series, _ = _get_parsed_metadata(folder_settings.METADATA_FOLDER)
+    for series_asin, book_data in series.items():
+        book_series.append(_make_book_series(asin=series_asin, books=book_data, filelist=filelist))
+    book_series.sort(key=lambda s: s.title)
+    return book_series

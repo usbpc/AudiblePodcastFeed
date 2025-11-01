@@ -59,7 +59,7 @@ class BasicAuthBackend(AuthenticationBackend):
         return AuthCredentials(["authenticated"]), SimpleUser(username)
 
 from folder_settings import AUDIO_FOLDER
-from book_store import get_all_individual_books, get_series_by_asin, get_podcast_by_asin
+from book_store import get_all_individual_books, get_series_by_asin, get_podcast_by_asin, get_series
 
 templates = Jinja2Templates(directory='templates')
 routes = []
@@ -109,7 +109,7 @@ def add_route(path):
         routes.append(Route(path=path, endpoint=f))
     return decorator
 
-def generate_url_prefix(request: Request):
+def generate_book_url_prefix(request: Request):
     host = request.headers['x-forwarded-host'] if 'x-forwarded-host' in request.headers else request.url.hostname
     scheme = request.headers['x-forwarded-proto'] if 'x-forwarded-proto' in request.headers else request.url.scheme
     port = int(request.headers['x-forwarded-port']) if 'x-forwarded-port' in request.headers else request.url.port
@@ -118,6 +118,17 @@ def generate_url_prefix(request: Request):
         port = None
 
     url_prefix = f'{scheme}://{host}:{port}' if port else f'{scheme}://{host}'
+    return url_prefix
+
+def generate_auth_url_prefix(request: Request):
+    host = request.headers['x-forwarded-host'] if 'x-forwarded-host' in request.headers else request.url.hostname
+    scheme = request.headers['x-forwarded-proto'] if 'x-forwarded-proto' in request.headers else request.url.scheme
+    port = int(request.headers['x-forwarded-port']) if 'x-forwarded-port' in request.headers else request.url.port
+
+    if port == 80 and scheme == 'http' or port == 443 and scheme == 'https':
+        port = None
+
+    url_prefix = f'{scheme}://{HTTP_USER}:{HTTP_PASSWORD}@{host}:{port}' if port else f'{scheme}://{host}'
     return url_prefix
 
 def auth_check(request: Request):
@@ -129,7 +140,7 @@ def individual_books(request: Request):
     auth_check(request)
     books = get_all_individual_books()
 
-    url_prefix = generate_url_prefix(request)
+    url_prefix = generate_book_url_prefix(request)
 
     items = list()
 
@@ -162,7 +173,7 @@ def podcast_series(request: Request):
 
     items = list()
 
-    url_prefix = generate_url_prefix(request)
+    url_prefix = generate_book_url_prefix(request)
 
     counter = 0
     for book in podcast.books:
@@ -189,6 +200,13 @@ def podcast_series(request: Request):
 
     return templates.TemplateResponse(request, 'podcast.xml.j2', data, media_type='text/xml')
 
+@add_route(path='/')
+def overview(request: Request):
+    auth_check(request)
+    series_books = get_series()
+    individual_books = get_all_individual_books()
+    return templates.TemplateResponse(request, 'overview.html.j2', {'series_books': series_books, 'individual_books': individual_books, 'url_prefix': generate_auth_url_prefix(request)}, media_type='text/html')
+
 @add_route(path='/series/{asin}')
 def book_series(request: Request):
     auth_check(request)
@@ -197,7 +215,7 @@ def book_series(request: Request):
 
     items = list()
 
-    url_prefix = generate_url_prefix(request)
+    url_prefix = generate_book_url_prefix(request)
 
     counter = 0
     for book in series.books:
