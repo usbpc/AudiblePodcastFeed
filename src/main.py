@@ -128,7 +128,7 @@ def generate_auth_url_prefix(request: Request):
     if port == 80 and scheme == 'http' or port == 443 and scheme == 'https':
         port = None
 
-    url_prefix = f'{scheme}://{HTTP_USER}:{HTTP_PASSWORD}@{host}:{port}' if port else f'{scheme}://{host}'
+    url_prefix = f'{scheme}://{HTTP_USER}:{HTTP_PASSWORD}@{host}:{port}' if port else f'{scheme}://{HTTP_USER}:{HTTP_PASSWORD}@{host}'
     return url_prefix
 
 def auth_check(request: Request):
