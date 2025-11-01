@@ -27,7 +27,7 @@ config = Config(".env")
 
 PODCAST_FEED_IMAGE = config.get("PODCAST_FEED_IMAGE")
 HASH_SALT = bytes(config.get("PODCAST_HASH_SALT", default=''.join(random.choices(string.ascii_letters + string.digits, k=16))), 'utf-8')
-AUTH_ENABLED = config.get("AUTH_ENABLED", default=True)
+AUTH_ENABLED = config.get("AUTH_ENABLED", cast=bool, default=True)
 HTTP_USER = config.get("HTTP_USERNAME", default="user")
 
 try:
