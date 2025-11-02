@@ -65,12 +65,12 @@ of your audible account.
 
 4. Start the docker compose services
 5. Optional: Configure a reverse proxy for https
-6. Optional: Set up a [sheduled job for automatic downloading](docs/AUTOMATE_DOWNLOLADING.md)
+6. Optional: Set up a [sheduled job for automatic downloading](docs/AUTOMATE_DOWNLOADING.md)
 
 ## Configuration
 | Environment variable | Default value              | Description                                                                                                                                                                                           |
 | -------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PODCAST_FEED_IMAGE` | None, reqired to be set    | URL of cover image used for podcast feeds                                                                                                                                                             |
+| `PODCAST_FEED_IMAGE` | None, reqired to be set    | URL of cover image used for podcast feeds.                                                                                                                                                            |
 | `PODCAST_HASH_SALT`  | Random 16 character string | Hash salt used to obfuscate download links for audio files. Required since overcast dosen't send http basic auth for downloads.                                                                       |
 | `AUTH_ENABLED`       | `True`                     | Used to disable authentication handling in the starlette application. Set to `False` when handeling authentication in an external reverse proxy.                                                      |
 | `HTTP_USERNAME`      | `user`                     | Username for http basic auth for the podcast feeds. Should also be set if external auth is used. The overview page uses this value to generate links with authentication to the individual RSS feeds. |
