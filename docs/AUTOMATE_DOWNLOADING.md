@@ -58,7 +58,7 @@ executed twice an hour:
 </ul>
 
 The service is only executed when the <code>docker.service</code> exists and is running. 
-To allow enabeling the timer unit on system boot it is marked as wanted by 
+To allow enabeling the timer unit on system boot, it is marked as wanted by 
 <code>timers.target</code>.
 </details>
 
@@ -70,7 +70,7 @@ After creating the files reload the systemd daemon, enable and activate the
 timer unit:
 ```bash
 systemctl daemon-reload
-systemctl enable --now audible-download-books.timer`
+systemctl enable --now audible-download-books.timer
 ```
 To check the status of the timer and service units the `systemctl status` 
 command can be used:
