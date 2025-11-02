@@ -15,7 +15,7 @@ services:
       HTTP_PASSWORD: "{{ password }}"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.audible-auth.basicauth.users=user:$apr1$hf3tPfIO$QbkMLXacYfcOTvPcPQB950"
+      - "traefik.http.middlewares.audible-auth.basicauth.users={{ user and password hashed using htpasswd }}"
       - "traefik.http.routers.audible-podcasts-audio-router.rule=Host(`{{ your domain }}`) && PathPrefix(`/audio_file`)"
       - "traefik.http.routers.audible-podcasts-audio-router.entrypoints=https"
       - "traefik.http.routers.audible-podcasts-audio-router.tls.certresolver=letsencrypt"
@@ -59,5 +59,5 @@ volumes:
 	metadata:
   letsencrypt:
 ```
-
+`htpasswd -nb user password`
 https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
