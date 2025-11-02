@@ -52,8 +52,10 @@ The timer unit tells systemd that to run when the wall clock time has 00 or 30
 in the minutes. A random delay of up to 600 seconds is added each time. Combined
 the wall clock sheduling with the random delay mean, that the service is 
 executed twice an hour:
-* 0-10 minutes after the full hour
-* 30-40 minutes after the full hour
+<ul>
+<li>0-10 minutes after the full hour</li>
+<li>30-40 minutes after the full hour</li>
+</ul>
 
 The service is only executed when the <code>docker.service</code> exists and is running. 
 To allow enabeling the timer unit on system boot it is marked as wanted by 
