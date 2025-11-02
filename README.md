@@ -3,20 +3,23 @@ AudiblePodcastFeed serves two related functions, it:
 * downloads books from the connected audible library and decrypts the audio files.
 * provides an RSS podcast feeds organized by book series.
 
-I created AudiblePodcastFeed to allow me to easily listen to my purchased audiobooks using the [overcast podcast app](https://overcast.fm). 
-The RSS podcast feeds generated should be compatible with other podcast players, but I have not tested that.
+I created AudiblePodcastFeed to allow me to easily listen to my purchased 
+audiobooks using the [overcast podcast app](https://overcast.fm). 
+The RSS podcast feeds generated should be compatible with other podcast players, 
+but I have not tested that.
 
-## Setup
+AudiblePodcastFeed is desinged to run in a docker container. Other deployment 
+methods are not supported.
+
+## About this documentation
 This documentation assumes you are familiar with:
 * [docker](https://docs.docker.com/get-started/docker-overview/)
 * [docker compose](https://docs.docker.com/compose/gettingstarted)
 * the linux [command](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview) [line](https://www.digitalocean.com/community/tutorials/linux-commands) interface
 * [reverse proxies](https://en.wikipedia.org/wiki/Reverse_proxy)
 
-AudiblePodcastFeed is made to run in a docker container.
-
-## Docker compose
-`git clone REPOSITORY build`
+## Quick start
+1. Create a folder with the following `docker-compose.yaml`:
 ```yaml
 services:
   audible-podcasts:
@@ -31,6 +34,8 @@ services:
       HTTP_USERNAME: "{{ user }}"
       HTTP_PASSWORD: "{{ password }}"
     restart: unless-stopped
+    ports:
+    - 8080:8080
   audible-podcasts-downloader:
     build: ./build
     volumes:
@@ -44,13 +49,23 @@ volumes:
 	audio:
 	metadata:
 ```
+> ⚠️ Replace all the placeholders in double curly braces.
 
+2. Clone this repository into the build subdirectory:
+```bash
+git clone REPOSITORY build`
+```
+3. Create a audible authentication file:
 ```bash
 touch audible_auth
 docker compose run -i audible-podcasts-downloader python generate_audible_auth.py --locale DE
 ```
-https://audible.readthedocs.io/en/latest/marketplaces/marketplaces.html#country-codes
+> ⚠️ Replace the locale `DE` with the [marketplace country code](https://audible.readthedocs.io/en/latest/marketplaces/marketplaces.html#country-codes) 
+of your audible account.
 
+4. Start the docker compose services
+5. Optional: Configure a reverse proxy for https
+6. Optional: Set up a [sheduled job for automatic downloading](docs/AUTOMATE_DOWNLOLADING.md)
 
 ## Technical details
 The project is written in python and uses the following packages:
