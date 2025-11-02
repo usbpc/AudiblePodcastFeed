@@ -1,6 +1,6 @@
 # Audible downloader and podcast feed generator
 AudiblePodcastFeed serves two related functions, it:
-* downloads books from the connected audible library and removes DRM.
+* downloads books from the connected audible library and decrypts the audio files.
 * provides an RSS podcast feeds organized by book series.
 
 I created AudiblePodcastFeed to allow me to easily listen to my purchased audiobooks using the [overcast podcast app](https://overcast.fm). 
@@ -14,6 +14,39 @@ This documentation assumes you are familiar with:
 * [reverse proxies](https://en.wikipedia.org/wiki/Reverse_proxy)
 
 AudiblePodcastFeed is made to run in a docker container.
+
+## Docker compose
+`git clone REPOSITORY build`
+```yaml
+services:
+  audible-podcasts:
+    build: ./build
+    volumes:
+    - ./metadata:/app/metadata_files
+    - ./audio:/app/audio_files
+    environment:
+      PODCAST_FEED_IMAGE: "{{ url for cover image }}"
+      PODCAST_HASH_SALT: "{{ random string }}"
+      AUTH_ENABLED: True
+      HTTP_USERNAME: "{{ user }}"
+      HTTP_PASSWORD: "{{ password }}"
+    restart: unless-stopped
+  audible-podcasts-downloader:
+    build: ./build
+    volumes:
+    - ./audible_auth:/app/audible_auth
+    - ./metadata:/app/metadata_files
+    - ./audio:/app/audio_files
+    command: python library_downloader.py download
+    restart: no
+```
+
+```bash
+touch audible_auth
+docker compose run -i audible-podcasts-downloader python generate_audible_auth.py --locale DE
+```
+https://audible.readthedocs.io/en/latest/marketplaces/marketplaces.html#country-codes
+
 
 ## Technical details
 The project is written in python and uses the following packages:
