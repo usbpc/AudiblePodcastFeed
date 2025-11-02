@@ -22,8 +22,8 @@ services:
   audible-podcasts:
     build: ./build
     volumes:
-    - ./metadata:/app/metadata_files
-    - ./audio:/app/audio_files
+    - metadata:/app/metadata_files
+    - audio:/app/audio_files
     environment:
       PODCAST_FEED_IMAGE: "{{ url for cover image }}"
       PODCAST_HASH_SALT: "{{ random string }}"
@@ -35,10 +35,14 @@ services:
     build: ./build
     volumes:
     - ./audible_auth:/app/audible_auth
-    - ./metadata:/app/metadata_files
-    - ./audio:/app/audio_files
+    - metadata:/app/metadata_files
+    - audio:/app/audio_files
     command: python library_downloader.py download
     restart: no
+
+volumes:
+	audio:
+	metadata:
 ```
 
 ```bash

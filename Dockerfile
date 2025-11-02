@@ -14,14 +14,12 @@ RUN pip install -r requirements.txt
 RUN set -eux; \
     groupadd -g 1000 audible; \
     useradd -m -u 1000 -g 1000 -s /bin/bash audible; \
+    mkdir /app/metadata_files /app/audio_files; \
     chown -R audible:audible /app
 
 USER 1000:1000
 
-RUN mkdir metadata_files audio_files; \
-	touch audible_auth
-
-VOLUME /app/metadata_files /app/audio_files /app/audible_auth
+VOLUME /app/metadata_files /app/audio_files
 
 EXPOSE 8080/tcp
 
