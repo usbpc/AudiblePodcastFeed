@@ -13,7 +13,7 @@ can be done by running `docker compose up audible-podcasts-downloader` in the
 directory where the `docker-compose.yml` is located.
 
 ## Example with systemd timers
-To use systemd to automate this, place the following [unit files](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html)
+To use systemd to automate this, place the following <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html">unit files</a>
 in `/etc/systemd/system/`:
 
 `audible-download.books.service`:
@@ -26,9 +26,9 @@ WorkingDirectory={{ absolute path to docker-compose.yml directory }}
 ExecStart=docker compose up audible-podcasts-downloader
 ```
 <details>
-<summary>Explanation of [the service unit](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html)</summary>
-The service unit tells systemd to run the command `docker compose up audible-podcasts-downloader` 
-in the the working directory `{{ absolute path to docker-compose.yml directory }}`.
+<summary>Explanation of <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html">the service unit</a></summary>
+The service unit tells systemd to run the command <code>docker compose up audible-podcasts-downloader</code> 
+in the the working directory <code>{{ absolute path to docker-compose.yml directory }}</code>.
 By default all systemd units execute the commands with root permissions.
 </details>
 
@@ -47,7 +47,7 @@ OnCalendar=*-*-* *:00,30:00
 WantedBy=timers.target
 ```
 <details>
-<summary>Explanation of [the timer unit](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html)</summary>
+<summary>Explanation of <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html"> the timer unit</a></summary>
 The timer unit tells systemd that to run when the wall clock time has 00 or 30 
 in the minutes. A random delay of up to 600 seconds is added each time. Combined
 the wall clock sheduling with the random delay mean, that the service is 
@@ -55,9 +55,9 @@ executed twice an hour:
 * 0-10 minutes after the full hour
 * 30-40 minutes after the full hour
 
-The service is only executed when the `docker.service` exists and is running. 
+The service is only executed when the <code>docker.service</code> exists and is running. 
 To allow enabeling the timer unit on system boot it is marked as wanted by 
-`timers.target`.
+<code>timers.target</code>.
 </details>
 
 Make sure that the `.service` and `.timer` unit have the exact same name before 
