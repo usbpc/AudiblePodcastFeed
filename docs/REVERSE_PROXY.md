@@ -1,5 +1,8 @@
 # Routes and reverse proxy
-This documentation lists the routes
+This documentation:
+* lists and explains the endpoints served
+* explains the resoning behind endpoint design
+* shows how to set up https with traefik as a reverse proxy
 
 ## Endpoints
 The following endpoints need **authentication**:
@@ -19,23 +22,39 @@ All the other paths are RSS feeds for use in a podcast app.
 
 With `AUTH_ENABLED=True` AudiblePodcastFeed requires **http basic authentication** 
 (or **basic auth** for short) for the endpoints listed above. Basic auth is
-supported by the podcast app Overcast for RSS feeds. Since I use Overcast, basic 
-auth is the authentication I have implemented.
+supported by the podcast app Overcast for RSS feeds. Because I use Overcast, 
+basic auth is the authentication I have implemented.
 
 With `AUTH_ENABLED=False` basic auth handling in AudiblePodcastFeed can be 
 disabled. This can be used to let the reverse proxy handle authentication. 
 
-> Note: `HTTP_USERNAME` and `HTTP_PASSWORD` shoud still be configured when `AUTH_ENABLED=False`
+> ⚠️ `HTTP_USERNAME` and `HTTP_PASSWORD` shoud still be configured when `AUTH_ENABLED=False`
 
 ---
 
-The following endpoint **does not** need authentication:
+The following endpoint is **un**authentication:
 ```
 GET /audio_file/{hash}/{filename}
 ```
+> The curly in the paths indicate path parameters.
 
+This endpoint is unauthenticated, because the podcast app Overcast dosen't
+support authentication for media file downloads.
+
+The `filename` parameter is a filename as downloaded and decrypted by 
+`library_downloader.py`. 
+
+To still allow for *some* security the URL for the media files is designed to 
+be hard to guess. For that reason, the `hash` parameter is part of the path. 
+The  `hash` parameter is the sha256 hash of the  `filename` parameter and 
+`PODCAST_HASH_SALT` environment variable concatonated.
+> Python code that generates the `hash`:
+> `hashlib.sha256(PODCAST_HASH_SALT + bytes(filename, 'utf-8')).hexdigest()`
 
 ## Example with treafik
+
+To set up AudiblePodcastFeed behind a traefik reverse proxy the following 
+`docker-compose.yml` can be used:
 
 ```yaml
 services:
