@@ -27,8 +27,9 @@ ExecStart=docker compose up audible-podcasts-downloader
 ```
 <details>
 <summary>Explanation of <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html">the service unit</a></summary>
-The *service unit* tells systemd to run the command <code>docker compose up audible-podcasts-downloader</code> 
-in the the working directory <code>{{ absolute path to docker-compose.yml directory }}</code>.
+The <i>service unit</i> tells systemd to run the command 
+<code>docker compose up audible-podcasts-downloader</code> in the the 
+working directory <code>{{ absolute path to docker-compose.yml directory }}</code>.
 By default all systemd units execute commands with root permissions.
 </details>
 
@@ -48,10 +49,10 @@ WantedBy=timers.target
 ```
 <details>
 <summary>Explanation of <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html"> the timer unit</a></summary>
-The timer unit tells systemd to run the *systemd service*, when the wall clock 
-time  has 00 or 30 in the minutes. A random delay of up to 600 seconds is added 
-each time. Combined the wall clock sheduling with the random delay mean, that 
-the *systemd service* is executed twice an hour:
+The timer unit tells systemd to run the <i>systemd service</i>, when the 
+wall clock time has 00 or 30 in the minutes. A random delay of up to 600 seconds 
+is added each time. Combined the wall clock sheduling with the random delay mean, 
+that the <i>systemd service</i> is executed twice an hour:
 <ul>
 <li>0-10 minutes after the full hour</li>
 <li>30-40 minutes after the full hour</li>
