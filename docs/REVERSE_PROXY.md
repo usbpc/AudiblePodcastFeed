@@ -191,15 +191,20 @@ authenticated endpoints:
 - "traefik.http.routers.audible-podcasts-router-authenticated.middlewares=audible-auth"
 ```
 
-Both *Traefik routers* are configured to
-* only allow https access.
-* generate TLS certificates with Let's Encrypt.
-
-The `audible-podcasts-router-authenticated` *Traefik router* is configured to use
-the **Traefik middleware** named `audible-auth`.
-
+A **Traefik middleware** named `audible-auth` is configured:
 ```
 - "traefik.http.middlewares.audible-auth.basicauth.users={{ user and password hashed using htpasswd }}"
 ```
-The `audible-auth` *Traefik middleware* is configured to require *basic auth* to
-access any endpoints configured in *Traefik routers* using this *Traefik middleware*.
+
+The `audible-auth` *Traefik middleware* is configured to require *basic auth*.
+
+The *Traefik routers* `audible-podcasts-router` and 
+`audible-podcasts-router-authenticated` are configured to
+* only allow https access.
+* generate TLS certificates with Let's Encrypt.
+
+The `audible-podcasts-router-authenticated` *Traefik router* is configured to 
+use the `audible-auth` *Traefik middleware*. This configuration ensures that all 
+endpoints accessed through this *Traefik router* are secured by *basic auth*.
+
+
