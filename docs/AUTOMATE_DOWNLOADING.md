@@ -1,7 +1,7 @@
 # Automatically download new audiobooks on schedule
-This documentation shows how to schedule automatic downloading of audiobooks 
-added to the connected audible library. AudiblePodcastFeed has no scheduling 
-built-in so an external tool must be used if automatic downloading is desired.
+This document shows how to schedule automatic downloading of audiobooks added to
+the connected audible library. AudiblePodcastFeed has no scheduling built-in so 
+an external tool must be used if automatic downloading is desired.
 
 This document assumes you are using the `docker-compose.yml` provided by the 
 project. Specifically that the service executing `library_downloader.py` is 
