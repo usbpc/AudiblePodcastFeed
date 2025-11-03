@@ -146,10 +146,10 @@ The above docker compose file specifies a `reverse-proxy` service in addition
 to the `audible-podcasts` and `audible-podcasts-downloader` services shown
 in the [readme](../README.md). [Traefik](https://traefik.io) is used as the 
 reverse proxy software. Traefik is configured to
+* generate TLS certificates using [Let's Encrypt](https://letsencrypt.org/).
 * serve http on tcp port 80.
 * serve https on tcp port 443.
 * serve http3 on udp port 443.
-* generate TLS certificates using [Let's Encrypt](https://letsencrypt.org/).
 
 This is configured with the command line arguments on the `reverse-proxy` service:
 ```
@@ -169,9 +169,9 @@ One **Traefik service** named `audible-podcasts-service` is configured:
 - "traefik.http.services.audible-podcasts-service.loadbalancer.server.port=8080"
 ```
 The *Traefik service* `audible-podcasts-service` tells Treafik to connect to the
-`audible-podcasts` service on port `8080`.
+`audible-podcasts` service on port 8080.
 
-Two **Traefik routers** are configured to connect to the *Traefik service* 
+Two **Traefik routers** are configured to use the *Traefik service* 
 `audible-podcasts-service`:
 * the *Treafik router* named `audible-podcasts-router` for the 
 unauthenticated endpoint:
