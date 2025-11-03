@@ -51,7 +51,7 @@ The  `hash` parameter is the sha256 hash of the  `filename` parameter and
 > Python code that generates the `hash`:
 > `hashlib.sha256(PODCAST_HASH_SALT + bytes(filename, 'utf-8')).hexdigest()`
 
-## Example with treafik
+## Traefik reverse proxy example
 
 To set up AudiblePodcastFeed behind a traefik reverse proxy the following 
 `docker-compose.yml` can be used:
@@ -111,8 +111,8 @@ services:
       - letsencrypt:/letsencrypt
 
 volumes:
-	audio:
-	metadata:
+  audio:
+  metadata:
   letsencrypt:
 ```
 > Note: when used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
