@@ -19,6 +19,7 @@ This documentation assumes you are familiar with:
 * [reverse proxies](https://en.wikipedia.org/wiki/Reverse_proxy)
 
 ## Quick start
+### Setup
 1. Create a folder with the following `docker-compose.yaml`:
 ```yaml
 services:
@@ -66,8 +67,17 @@ docker compose run -i audible-podcasts-downloader python generate_audible_auth.p
 of your audible account.
 
 4. Start the docker compose services
-5. Optional: Configure a reverse proxy for https
+5. Optional: Configure [a reverse proxy for https](docs/REVERSE_PROXY.md)
 6. Optional: Set up a [sheduled job for automatic downloading](docs/AUTOMATE_DOWNLOADING.md)
+> [!NOTE]
+> By default the audiobooks are only downloaded once on initial start. To update
+> the downloaded and decrypted audio books start the 
+> `audible-podcasts-downloader` service.
+
+### Usage
+1. Open the overview page on the root of the `audible-podcasts` web server. 
+> If running on your local machine with the configuration above: http://localhost:8080/
+2. Copy any of the RSS feed links and add to your podcast app.
 
 ## Configuration
 | Environment variable | Default value              | Description                                                                                                                                                                                           |
