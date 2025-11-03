@@ -49,7 +49,8 @@ volumes:
 	audio:
 	metadata:
 ```
-> ⚠️ Replace all the placeholders in double curly braces.
+> [!IMPORTANT]
+> Replace all the placeholders including the double curly braces.
 
 2. Clone this repository into the build subdirectory:
 ```bash
@@ -60,7 +61,8 @@ git clone REPOSITORY build
 touch audible_auth
 docker compose run -i audible-podcasts-downloader python generate_audible_auth.py --locale DE
 ```
-> ⚠️ Replace the locale `DE` with the [marketplace country code](https://audible.readthedocs.io/en/latest/marketplaces/marketplaces.html#country-codes) 
+> [!IMPORTANT]
+> Replace the locale `DE` with the [marketplace country code](https://audible.readthedocs.io/en/latest/marketplaces/marketplaces.html#country-codes) 
 of your audible account.
 
 4. Start the docker compose services

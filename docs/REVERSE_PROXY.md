@@ -28,7 +28,9 @@ basic auth is the authentication I have implemented.
 With `AUTH_ENABLED=False` basic auth handling in AudiblePodcastFeed can be 
 disabled. This can be used to let the reverse proxy handle authentication. 
 
-> ⚠️ `HTTP_USERNAME` and `HTTP_PASSWORD` shoud still be configured when `AUTH_ENABLED=False`
+> [!WARNING]
+> `HTTP_USERNAME` and `HTTP_PASSWORD` still need be configured when basic auth 
+> is disabled in AudiblePodcastFeed by setting `AUTH_ENABLED=False`.
 
 ---
 
@@ -115,10 +117,14 @@ volumes:
   metadata:
   letsencrypt:
 ```
-> Note: when used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
+> [!IMPORTANT]
+> Replace all the placeholders including the double curly braces.
+
+> [!TIP]
+> When used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
 > To create user:password pair, it's possible to use this command:
 > echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
 >
 > Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).
+> \- From the [traefik documentation about the BasicAuth Middleware](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/)
 
-\- From the [traefik documentation about the BasicAuth Middleware](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/)
