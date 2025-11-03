@@ -5,7 +5,7 @@ This documentation:
 * shows how to set up https with traefik as a reverse proxy
 
 ## Endpoints
-The following endpoints need **authentication**:
+### Authenticated
 ```
 GET /
 GET /individual_audiobooks
@@ -32,9 +32,8 @@ disabled. This can be used to let the reverse proxy handle authentication.
 > `HTTP_USERNAME` and `HTTP_PASSWORD` still need be configured when basic auth 
 > is disabled in AudiblePodcastFeed by setting `AUTH_ENABLED=False`.
 
----
+### Unauthenticated
 
-The following endpoint is **un**authentication:
 ```
 GET /audio_file/{hash}/{filename}
 ```
@@ -121,10 +120,9 @@ volumes:
 > Replace all the placeholders including the double curly braces.
 
 > [!TIP]
-> When used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.
-> To create user:password pair, it's possible to use this command:
-> echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
+> When used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.  
+> To create user:password pair, it's possible to use this command:  
+> `echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g`
 >
-> Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).
+> Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).  
 > \- From the [traefik documentation about the BasicAuth Middleware](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/)
-
