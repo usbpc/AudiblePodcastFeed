@@ -1,6 +1,6 @@
 # Audible downloader and podcast feed generator
 AudiblePodcastFeed serves two related functions, it:
-* downloads books from the connected audible library and decrypts the audio files.
+* downloads books from one connected audible library and decrypts the audio files.
 * provides an RSS podcast feeds organized by book series.
 
 I created AudiblePodcastFeed to allow me to easily listen to my purchased 
@@ -20,7 +20,7 @@ This documentation assumes you are familiar with:
 
 ## Quick start
 ### Setup
-1. Create a folder with the following `docker-compose.yaml`:
+1. Create a directory with the following `docker-compose.yaml`:
 ```yaml
 services:
   audible-podcasts:
@@ -67,16 +67,17 @@ docker compose run -i audible-podcasts-downloader python generate_audible_auth.p
 of your audible account.
 
 4. Start the docker compose services
-5. Optional: Configure [a reverse proxy for https](docs/REVERSE_PROXY.md)
-6. Optional: Set up a [sheduled job for automatic downloading](docs/AUTOMATE_DOWNLOADING.md)
+5. Optional: Configure a reverse proxy for https ([see the docs](docs/REVERSE_PROXY.md))
+6. Optional: Set up a sheduled job for automatic downloading ([see the docs](docs/AUTOMATE_DOWNLOADING.md))
 > [!NOTE]
-> By default the audiobooks are only downloaded once on initial start. To update
-> the downloaded and decrypted audio books start the 
-> `audible-podcasts-downloader` service.
+> By default the audiobooks are only downloaded once on initial startup. 
+> To download and decrypted audiobooks added to the connected library after 
+> initial startup, start the `audible-podcasts-downloader` service again.
 
 ### Usage
 1. Open the overview page on the root of the `audible-podcasts` web server. 
-> If running on your local machine with the configuration above: http://localhost:8080/
+http://localhost:8080/, if running on your local machine using the docker 
+compose configuration from above.
 2. Copy any of the RSS feed links and add to your podcast app.
 
 ## Configuration
