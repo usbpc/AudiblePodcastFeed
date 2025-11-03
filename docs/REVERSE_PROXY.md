@@ -120,4 +120,5 @@ volumes:
 > echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
 >
 > Also, note that dollar signs should NOT be doubled when not evaluated (e.g. Ansible docker_container module).
+
 \- From the [traefik documentation about the BasicAuth Middleware](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/)
