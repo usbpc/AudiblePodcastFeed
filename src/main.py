@@ -59,7 +59,7 @@ class BasicAuthBackend(AuthenticationBackend):
         return AuthCredentials(["authenticated"]), SimpleUser(username)
 
 from folder_settings import AUDIO_FOLDER
-from book_store import get_all_individual_books, get_series_by_asin, get_podcast_by_asin, get_series
+from book_store import get_all_individual_books, get_series_by_asin, get_podcast_by_asin, get_series, get_podcasts
 
 templates = Jinja2Templates(directory='templates')
 routes = []
@@ -204,8 +204,15 @@ def podcast_series(request: Request):
 def overview(request: Request):
     auth_check(request)
     series_books = get_series()
+    podcast_books = get_podcasts()
     individual_books = get_all_individual_books()
-    return templates.TemplateResponse(request, 'overview.html.j2', {'series_books': series_books, 'individual_books': individual_books, 'url_prefix': generate_auth_url_prefix(request)}, media_type='text/html')
+    return templates.TemplateResponse(request, 'overview.html.j2',
+                                      {'series_books': series_books,
+                                       'podcast_books': podcast_books,
+                                       'individual_books': individual_books,
+                                       'url_prefix': generate_auth_url_prefix(request)
+                                       },
+                                      media_type='text/html')
 
 @add_route(path='/series/{asin}')
 def book_series(request: Request):
