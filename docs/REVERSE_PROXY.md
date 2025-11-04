@@ -1,11 +1,11 @@
 # Routes and reverse proxy
 This document:
-* lists and explains the endpoints served
-* explains the resoning behind endpoint design
-* shows how to set up https with traefik as a reverse proxy
+* lists and explains all endpoints served
+* explains the reasoning behind endpoint design
+* shows how to set up https with Traefik as a reverse proxy
 
 ## Endpoints
-The endpoints are noted in this document as the [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods)
+The endpoints are noted in this document as [HTTP request method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods)
 followed by the absolute path of the endpoint. A endpoint noted as
 ```
 GET /my/awesome/endpoint
@@ -24,14 +24,14 @@ GET /podcast/{asin}
 GET /series/{asin}
 ```
 > [!NOTE]
-> The curly in the paths indicate path parameters.  
-> The [asin](https://en.wikipedia.org/wiki/Amazon_Standard_Identification_Number)
+> The curly braces in the paths indicate path parameters.  
+> An [asin](https://en.wikipedia.org/wiki/Amazon_Standard_Identification_Number)
 > is a unique identifier assinged by amazon to all items. This includes
 > audiobooks, book series and audible podcasts. An asin looks like [`B07X2RPHYG`](https://www.audible.de/series/B07X2RPHYG). 
 > All URLs to an item on audible contain an asin.
 
 The root path (`/`) displays a **overview page** with links to all RSS feeds. 
-All the other paths are RSS feeds for use in a podcast app.
+All other paths are RSS feeds for use in a podcast app.
 
 With `AUTH_ENABLED=True` AudiblePodcastFeed requires **http basic authentication** 
 (or **basic auth** for short) for the endpoints listed above. *Basic auth* is
@@ -59,16 +59,16 @@ support authentication for media file downloads.
 The `filename` parameter is a filename as downloaded and decrypted by 
 `library_downloader.py`. 
 
-To still allow for *some* security the URL for the media files is designed to 
-be hard to guess. For that reason, the `hash` parameter is part of the path. 
-The  `hash` parameter is the sha256 hash of the  `filename` parameter and 
+To still allow for *some* security the URL for media files is designed to be 
+hard to guess. For that reason, the `hash` parameter is part of the path. 
+The `hash` parameter is the sha256 hash of the `filename` parameter and 
 `PODCAST_HASH_SALT` environment variable concatonated.
-> Python code that generates the `hash`:
+> Python code computing the `hash`:
 > `hashlib.sha256(PODCAST_HASH_SALT + bytes(filename, 'utf-8')).hexdigest()`
 
 ## Traefik reverse proxy example
 
-To set up AudiblePodcastFeed behind a traefik reverse proxy the following 
+To set up AudiblePodcastFeed behind a Traefik reverse proxy the following 
 `docker-compose.yml` can be used:
 
 ```yaml
@@ -131,7 +131,7 @@ volumes:
   letsencrypt:
 ```
 > [!IMPORTANT]
-> Replace all the placeholders including the double curly braces.
+> Replace all placeholders including the double curly braces.
 
 > [!TIP]
 > When used in docker-compose.yml all dollar signs in the hash need to be doubled for escaping.  
@@ -151,7 +151,7 @@ reverse proxy software. Traefik is configured to
 * serve https on tcp port 443.
 * serve http3 on udp port 443.
 
-This is configured with the command line arguments on the `reverse-proxy` service:
+This is configured with command line arguments on the `reverse-proxy` service:
 ```
 - "--providers.docker"
 - "--entryPoints.https.http3"
@@ -163,16 +163,16 @@ This is configured with the command line arguments on the `reverse-proxy` servic
 - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
 ```
 
-Traefik is further configured by the labels on the `audible-podcasts` service.
+Traefik is further configured by labels on the `audible-podcasts` service.
 One **Traefik service** named `audible-podcasts-service` is configured:
 ```
 - "traefik.http.services.audible-podcasts-service.loadbalancer.server.port=8080"
 ```
-The *Traefik service* `audible-podcasts-service` tells Treafik to connect to the
+The `audible-podcasts-service` *Traefik service* tells Treafik to connect to the
 `audible-podcasts` service on port 8080.
 
-Two **Traefik routers** are configured to use the *Traefik service* 
-`audible-podcasts-service`:
+Two **Traefik routers** are configured to use the `audible-podcasts-service`
+*Traefik service*:
 * the *Treafik router* named `audible-podcasts-router` for the 
 unauthenticated endpoint:
 ```
@@ -198,13 +198,11 @@ A **Traefik middleware** named `audible-auth` is configured:
 
 The `audible-auth` *Traefik middleware* is configured to require *basic auth*.
 
-The *Traefik routers* `audible-podcasts-router` and 
-`audible-podcasts-router-authenticated` are configured to
+The `audible-podcasts-router` and `audible-podcasts-router-authenticated` 
+*Traefik routers* are configured to
 * only allow https access.
 * generate TLS certificates with Let's Encrypt.
 
 The `audible-podcasts-router-authenticated` *Traefik router* is configured to 
 use the `audible-auth` *Traefik middleware*. This configuration ensures that all 
 endpoints accessed through this *Traefik router* are secured by *basic auth*.
-
-

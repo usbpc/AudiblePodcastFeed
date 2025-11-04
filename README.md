@@ -47,8 +47,8 @@ services:
     restart: no
 
 volumes:
-	audio:
-	metadata:
+  audio:
+  metadata:
 ```
 > [!IMPORTANT]
 > Replace all the placeholders including the double curly braces.
