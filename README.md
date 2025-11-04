@@ -55,7 +55,7 @@ volumes:
 
 2. Clone this repository into the build subdirectory:
 ```bash
-git clone REPOSITORY build
+git clone https://github.com/usbpc/AudiblePodcastFeed.git build
 ```
 3. Create a audible authentication file:
 ```bash
