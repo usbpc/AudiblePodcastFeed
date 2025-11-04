@@ -71,8 +71,8 @@ of your audible account.
 6. Optional: Set up a sheduled job for automatic downloading ([see the docs](docs/AUTOMATE_DOWNLOADING.md))
 > [!NOTE]
 > By default the audiobooks are only downloaded once on initial startup. 
-> To download and decrypted audiobooks added to the connected library after 
-> initial startup, start the `audible-podcasts-downloader` service again.
+> To download and decrypted audiobooks added to the connected audible library 
+> after initial startup, start the `audible-podcasts-downloader` service again.
 
 ### Usage
 1. Open the overview page on the root of the `audible-podcasts` web server. 
