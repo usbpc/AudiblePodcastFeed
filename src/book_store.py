@@ -129,7 +129,7 @@ def get_podcasts() -> List[Podcast]:
     filelist = os.listdir(folder_settings.AUDIO_FOLDER)
     book_series = list()
     _, _, podcasts = _get_parsed_metadata(folder_settings.METADATA_FOLDER)
-    for series_asin, book_data in podcasts.items():
-        book_series.append(_make_book_series(asin=series_asin, books=book_data, filelist=filelist))
+    for podcasts_asin, book_data in podcasts.items():
+        book_series.append(_make_book_podcast(asin=podcasts_asin, books=book_data, filelist=filelist))
     book_series.sort(key=lambda s: s.title)
     return book_series
