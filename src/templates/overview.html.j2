@@ -32,5 +32,11 @@
     <li><a href="{{ url_prefix }}/series/{{ series.asin }}">{{ series.title }}</a></li>
     {% endfor %}
 </ul>
+<h2>Audible Podcasts</h2>
+<ul>
+    {% for podcast in podcast_books %}
+    <li><a href="{{ url_prefix }}/podcast/{{ podcast.asin }}">{{ podcast.title }}</a></li>
+    {% endfor %}
+</ul>
 </body>
 </html>
