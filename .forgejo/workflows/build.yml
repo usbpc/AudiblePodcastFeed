@@ -29,7 +29,6 @@ jobs:
         uses: https://code.forgejo.org/actions/checkout@v6
       -
         name: Login to Forgejo Container Registry
-        if: ${{ forgejo.event_name == 'push' }}
         uses: https://github.com/docker/login-action@v4
         with:
           registry: gitea.holm.dev
