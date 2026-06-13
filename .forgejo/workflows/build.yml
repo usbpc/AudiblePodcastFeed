@@ -1,0 +1,57 @@
+---
+name: Build container image
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - master
+    paths-ignore:
+      - '**/README.md'
+  workflow_dispatch:
+
+concurrency:
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build oci image
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: https://code.forgejo.org/actions/checkout@v6
+      -
+        name: Login to Forgejo Container Registry
+        if: ${{ forgejo.event_name == 'push' }}
+        uses: https://github.com/docker/login-action@v4
+        with:
+          registry: gitea.holm.dev
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+      -
+        name: Docker meta
+        id: meta
+        uses: https://github.com/docker/metadata-action@v6
+        with:
+          images: gitea.holm.dev/kjh/audiblePodcastFeed
+          tags: |
+            type=ref,event=tag
+            type=edge,branch=master
+
+      - name: Set up Docker Buildx
+        uses: https://github.com/docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+
+      - name: Build and push Image
+        id: build_image
+        uses: https://github.com/docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
