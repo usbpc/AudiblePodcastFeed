@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+  ],
+  "rebaseWhen": "never",
+
+  "packageRules": [
+    {
+      "matchDatasources": ["pypi"],
+      "groupName": "python requirements"
+    },
+    {
+      "automerge": true,
+      "matchUpdateTypes": ["pin", "pinDigest"]
+    },
+    {
+      "enabled": false,
+      "matchUpdateTypes": ["digest", "pinDigest", "pin"],
+      "matchDepTypes": ["container"],
+      "matchFileNames": [".forgejo/workflows/**.yaml", ".forgejo/workflows/**.yml"],
+    },
+  ]
+}

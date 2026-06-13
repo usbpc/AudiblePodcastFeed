@@ -1,0 +1,132 @@
+name: Renovate
+
+on:
+  schedule:
+    # Run every hour
+    - cron: '33 * * * *'
+
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: 'Dry run mode'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - 'extract'
+          - 'lookup'
+          - 'full'
+      logLevel:
+        description: 'Log level'
+        required: false
+        default: 'info'
+        type: choice
+        options:
+          - 'debug'
+          - 'info'
+          - 'warning'
+          - 'critical'
+
+  push:
+    branches:
+      - master
+    paths:
+      # Re-run when config changes
+      - '.forgejo/workflows/renovate.yaml'
+      - 'renovate.json5'
+      - 'renovate.json'
+
+jobs:
+  renovate:
+    name: Renovate
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/renovatebot/renovate:43.214.1@sha256:4dca2019148446db0519a4964999530f3638050939e6fcf12d3f13b4974b3b19
+      options: --tmpfs /tmp:exec
+    steps:
+      - name: Checkout
+        uses: https://github.com/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          show-progress: false
+
+      - name: print node heap
+        run: /usr/local/renovate/node -e 'console.log(`node heap limit = ${require("v8").getHeapStatistics().heap_size_limit / (1024 * 1024)} Mb`)'
+
+      - name: Restore renovate repo cache
+        uses: https://github.com/actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /tmp/renovate/cache/renovate/repository
+          key: renovate-repo-cache-${{ github.run_id }}
+          restore-keys: |
+            renovate-repo-cache-
+
+      - name: Restore renovate package cache
+        uses: https://github.com/actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /tmp/renovate/cache/renovate/renovate-cache-sqlite
+          key: renovate-package-cache-${{ github.run_id }}
+          restore-keys: |
+            renovate-package-cache-
+
+      - name: Restore renovate OSV cache
+        uses: https://github.com/actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /tmp/osv
+          key: renovate-osv-cache-${{ github.run_id }}
+          restore-keys: |
+            renovate-osv-cache-
+
+      - name: Self-hosted Renovate
+        run: renovate
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_DRY_RUN: ${{ inputs.dryRun || 'false' }}
+
+          RENOVATE_PLATFORM: forgejo
+          RENOVATE_ENDPOINT: ${{ github.server_url }}
+          RENOVATE_AUTODISCOVER: 'false'
+          RENOVATE_REPOSITORIES: '["${{ github.repository }}"]'
+
+          RENOVATE_GIT_TIMEOUT: 60000
+
+          RENOVATE_REQUIRE_CONFIG: 'required'
+          # RENOVATE_ONBOARDING: 'false'
+          RENOVATE_INHERIT_CONFIG: 'true'
+
+          RENOVATE_GITHUB_TOKEN_WARN: 'false'
+          RENOVATE_GIT_AUTHOR: 'Renovate Bot <renovate@holm.dev>'
+          RENOVATE_USERNAME: ${{ vars.RENOVATE_USER }}
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          GITHUB_COM_TOKEN: ${{ secrets.GH_PUBLIC_RO }}
+
+          RENOVATE_REPOSITORY_CACHE: 'enabled'
+          RENOVATE_X_SQLITE_PACKAGE_CACHE: 'true'
+          OSV_OFFLINE_ROOT_DIR: /tmp/osv
+
+      - name: Save renovate repo cache
+        if: always()
+        uses: https://github.com/actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /tmp/renovate/cache/renovate/repository
+          key: renovate-repo-cache-${{ github.run_id }}
+
+      - name: Save renovate package cache
+        if: always()
+        uses: https://github.com/actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /tmp/renovate/cache/renovate/renovate-cache-sqlite
+          key: renovate-package-cache-${{ github.run_id }}
+
+      - name: Save renovate OSV cache
+        if: always()
+        uses: https://github.com/actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: |
+            /tmp/osv
+          key: renovate-osv-cache-${{ github.run_id }}
