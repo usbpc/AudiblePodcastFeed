@@ -11,6 +11,8 @@ on:
       - master
     paths-ignore:
       - '**/README.md'
+      - 'renovate.json5'
+      - '.forgejo/workflows/renovate.yaml'
   workflow_dispatch:
 
 concurrency:

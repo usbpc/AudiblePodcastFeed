@@ -17,7 +17,6 @@
     {
       "enabled": false,
       "matchUpdateTypes": ["digest", "pinDigest", "pin"],
-      "matchDepTypes": ["container"],
       "matchFileNames": [".forgejo/workflows/**.yaml", ".forgejo/workflows/**.yml"],
     },
   ]
