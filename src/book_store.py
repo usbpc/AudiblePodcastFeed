@@ -2,8 +2,26 @@ import os
 import json
 import re
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import List, Dict
 import folder_settings
+
+class SeriesComparison:
+    def __init__(self, val):
+        self._val = val
+
+    def __lt__(self, other):
+        if not isinstance(other, SeriesComparison):
+            return NotImplemented
+
+        try:
+            this = Decimal(self._val)
+            that = Decimal(other._val)
+            return this < that
+        except InvalidOperation:
+            pass
+
+        return self._val < other._val
 
 def get_set_of_asins(path: str = folder_settings.METADATA_FOLDER):
     metadata_files = [x for x in os.listdir(path) if re.fullmatch(r"(?!series)(?!content).*.json", x)]
@@ -44,10 +62,10 @@ def _get_parsed_metadata(path: str):
                 individual_books.append(parsed_data['product'])
 
     for series_asin, book_data in series_books.items():
-        book_data.sort(key=lambda x: list(filter(lambda y: y['asin'] == series_asin, x['series']))[0]['sequence'])
+        book_data.sort(key=lambda x: SeriesComparison(list(filter(lambda y: y['asin'] == series_asin, x['series']))[0]['sequence']))
 
     for podcast_asin, book_data in podcast_books.items():
-        book_data.sort(key=lambda x: float(list(filter(lambda y: y['asin'] == podcast_asin, x['podcasts']))[0]['sort']))
+        book_data.sort(key=lambda x: SeriesComparison(list(filter(lambda y: y['asin'] == podcast_asin, x['podcasts']))[0]['sort']))
 
     return individual_books, series_books, podcast_books
 
