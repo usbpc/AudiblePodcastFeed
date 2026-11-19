@@ -1,4 +1,4 @@
-starlette~=1.3.1
+starlette~=1.10.0
 jinja2~=3.1.5
-uvicorn~=0.50.0
-audible~=0.10.0
+uvicorn~=0.54.0
+audible~=0.13.1
